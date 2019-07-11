@@ -1,0 +1,10 @@
+#Webscraping Variable Names and Definitions 
+
+VAR.URL = "https://github.com/fivethirtyeight/data/tree/master/police-killings"
+
+Var.Table = 
+  VAR.URL %>% 
+  read_html() %>% 
+  html_table(fill = T) %>% 
+    .[[2]]
+print(Var.Table)
