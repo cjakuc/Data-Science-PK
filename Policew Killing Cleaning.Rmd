@@ -1,0 +1,97 @@
+---
+title: "Test"
+author: "Chris Jakuc"
+date: "7/8/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(RCurl)
+library(tidyverse)
+```
+
+
+
+```{r}
+x<-getURL("https://raw.githubusercontent.com/cjakuc/data/master/police-killings/police_killings.csv")
+
+policekillings<-read.csv(text=x)
+
+
+region.data<-read_csv("/Users/chris/SS2_2019/STOR 320/Final Project/StatesbyCensusRegion.csv")
+
+
+
+write_csv(policekillings,"PoliceKillings.csv")
+```
+
+
+
+
+```{r}
+states<-policekillings %>%
+  rename(race=raceethnicity) %>%
+  group_by(state) %>%
+  summarize(count=n())
+races<-policekillings %>%
+  rename(race=raceethnicity) %>%
+  group_by(race) %>%
+  summarize(count=n())
+poverty<-policekillings %>%
+  rename(race=raceethnicity) %>%
+  group_by(pov) %>%
+  summarize(count=n())
+
+
+
+region<-region.data %>%
+  mutate(state=as.factor(state))
+
+region1<-left_join(policekillings,region,by="state")
+
+str(policekillings)
+
+poverty$pov=as.numeric(gsub("-","",poverty$pov))
+
+str(poverty)
+
+ggplot(data=poverty)+
+  geom_histogram(mapping=aes(pov),binwidth=10)
+
+
+write_csv(region1,"PoliceKillingsWithRegions.csv")
+
+var.names = names(policekillings)
+
+FiveSum.HI = matrix(NA,length(var.names),6)
+colnames(FiveSum.HI) = c("Variable","Min","Q1","Q2","Q3","Max")
+
+for(VAR in seq_along(var.names)){
+  if(is.numeric(policekillings[,VAR])){
+    MIN=min(policekillings[,VAR])
+    Q1=quantile(policekillings[,VAR],0.25)
+    Q2=median(policekillings[,VAR],0.5)
+    Q3=quantile(policekillings[,VAR],0.75)
+    MAX=max(policekillings[,VAR])
+    FiveSum.HI[VAR,]=c(names(policekillings)[VAR],MIN,Q1,Q2,Q3,MAX)
+  } else {
+    cat(str_c("Variable ",var.names[VAR]," is not numeric\n"))
+    FiveSum.HI[VAR,]=c(names(policekillings)[VAR],rep(NA,5))
+  }
+}
+print(as.tibble(na.omit(FiveSum.HI)))
+
+# Selecting numeric variables for a correlation martrix
+numeric_pk<-matrix(NA,length(var.names))
+
+for(VAR in seq_along(var.names)){
+  if(is.numeric(policekillings[,VAR])){
+    numeric_pk[,VAR]=policekillings[,VAR]
+  }
+}
+
+# Correlation Matrix
+print(round(cor(numeric_pk),3))
+```
+
