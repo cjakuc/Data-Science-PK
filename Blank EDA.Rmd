@@ -15,10 +15,22 @@ PoliceKillings<-read_csv("PKcleanP2.csv")
 
 #Creator: Katharine Kurz
 
+Adding populations by state and adding populations by region
+
 ###Q1: What regions of the country have the highest rates of police killings?
 
 ```{r}
-#
+populations<-read_csv("StatePops.csv")
+
+
+regions<-PoliceKillings %>%
+  group_by(region)
+```
+
+```{r}
+
+ggplot(regions) +
+  geom_bar(aes(x=region))
 ```
 
 ###Q2: Which races/ethnicities are frequently subjected to police violence?
