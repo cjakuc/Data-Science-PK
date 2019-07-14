@@ -111,7 +111,10 @@ PK.fctrs<-PKcleaning1 %>%
 str(PK.fctrs)
 levels(PK.fctrs$Race)
 ```
-
+Export CSV
+```{r}
+write_csv(PK.fctrs,"PKcleanP2.csv")
+```
 
 
 
