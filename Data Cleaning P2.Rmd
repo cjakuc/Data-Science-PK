@@ -1,0 +1,118 @@
+---
+title: "STOR 320 Final Project EDA"
+author: "Chris Jakuc"
+date: "7/11/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(RCurl)
+library(tidyverse)
+```
+
+
+Importing csv
+```{r}
+PKcleaning<-read_csv("PoliceKillingsWithRegions.csv")
+
+
+```
+
+Description of what the variables mean
+```{r}
+#Webscraping Variable Names and Definitions 
+
+VAR.URL = "https://github.com/fivethirtyeight/data/tree/master/police-killings"
+
+Var.Table = 
+  VAR.URL %>% 
+  read_html() %>% 
+  html_table(fill = T) %>% 
+    .[[2]]
+print(Var.Table)
+```
+
+Rename variables
+```{r}
+PKwR_rename= rename(PKcleaning, Name=name,
+             Age=age,
+             Gender=gender,
+             Race= raceethnicity,
+             Month= month,
+             Day= day, 
+             Year= year, 
+             Street_Address= streetaddress,
+             City= city, 
+             State= state, 
+             Latitude= latitude, 
+             Longitude= longitude,
+             Law_Enforcement_Agency= lawenforcementagency,
+             Cause_Of_Death= cause, 
+             Armed= armed, 
+             Population= pop, 
+             Proportion_White= share_white, Proportion_Black= share_black, Proportion_Hispanic = share_hispanic, 
+             Poverty_Rate= pov, 
+             Unemployment_Rate= urate, 
+             Proportion_Attended_College= college,
+             med.tract.personal.inc=p_income,
+             med.tract.household.inc=h_income,
+             tractvcount.percentile=comp_income,
+             inc.quint.nat=nat_bucket,
+             tract=namelsad,
+             countyID=county_id,
+             tractID=tract_ce,
+             countyFIPS=county_fp,
+             stateFIPS=state_fp,
+             med.county.household.inc=county_income
+             
+             )
+
+
+```
+
+
+
+Find missing values
+```{r}
+missing<-summary(PKwR_rename)
+print(missing)
+```
+
+
+Filter out problematic cases (2) and removed county_bucket (had 27 NAs)
+```{r}
+PKcleaning1<-PKwR_rename %>%
+  select(-county_bucket,-geo_id) %>%
+  filter(!Name=="Richard White",!Name=="Hashim Abdul-Rasheed")
+```
+
+How many NAs remain -> 0
+```{r}
+missing1<-summary(PKcleaning1)
+print(missing1)
+```
+
+
+Changing variables to factors -> to look at by sub-groupings later
+```{r}
+PK.fctrs<-PKcleaning1 %>%
+  mutate(Race=as.factor(Race),
+         Age=as.factor(Age),
+         State=as.factor(State),
+         Cause_Of_Death=as.factor(Cause_Of_Death),
+         Armed=as.factor(Armed),
+         Population=as.factor(Population),
+         med.tract.personal.inc=as.factor(med.tract.personal.inc),
+         med.tract.household.inc=as.factor(med.tract.household.inc),
+         med.county.household.inc=as.factor(med.county.household.inc),
+         region=as.factor(region)
+         ) 
+str(PK.fctrs)
+levels(PK.fctrs$Race)
+```
+
+
+
+
+
