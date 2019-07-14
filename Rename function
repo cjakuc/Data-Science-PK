@@ -1,0 +1,24 @@
+PKwR_rename= rename(PoliceKillingsWithRegions, Name=name,
+             Age=age,
+             Gender=gender,
+             Race= raceethnicity,
+             Month= month,
+             Day= day, 
+             Year= year, 
+             Street_Address= streetaddress,
+             City= city, 
+             State= state, 
+             Latitude= latitude, 
+             Longitude= longitude,
+             Law_Enforcement_Agency= lawenforcementagency,
+             Cause_Of_Death= cause, 
+             Armed= armed, 
+             Population= pop, 
+             Proportion_White= share_white, Proportion_Black= share_black, Proportion_Hispanic = share_hispanic, 
+             Poverty_Rate= pov, 
+             Unemployment_Rate= urate, 
+             Proportion_Attended_College= college
+             
+             )
+
+# I couldn't figure out what p_income, h_income, comp_income, county_bucket, nat_bucket, namelsad, county_id, geo_id, tract_ce, county_fp, or state_fp mean 
