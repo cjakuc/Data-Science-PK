@@ -24,7 +24,11 @@ PoliceKillings<-read_csv("PKcleanP2.csv")
 ###Q2: Which races/ethnicities are frequently subjected to police violence?
 
 ```{r}
-#
+Races <- PoliceKillings %>% 
+  group_by(Race)
+
+ggplot(Races) +
+  geom_bar(aes(x=Race))
 ```
 
 #Interpreter: Chris Jakuc
@@ -32,8 +36,40 @@ PoliceKillings<-read_csv("PKcleanP2.csv")
 ###Q1: Which age groups are more likely to be affected by police killings?
 
 ```{r}
-#
+Ages <- PoliceKillings %>% 
+  mutate(Age = as.factor(Age)) %>%
+  group_by(Age)
+str(Ages)
+levels(Ages$Age)
 ```
+```{r}
+Ages1 <- Ages %>%
+  mutate(Age_Bin=fct_collapse(Age,
+                           Teenager = levels(Age)[c(1:4)],
+                           Twenties = levels(Age)[c(5:14)],
+                           Thirties = levels(Age)[c(15:25)],
+                           Forties = levels(Age)[c(26:34)],
+                           Fifties = levels(Age)[c(35:44)],
+                           Sixties = levels(Age)[c(45:52)],
+                           Seventies =  levels(Age)[c(53:58)],
+                           Eighties = levels(Age)[c(59:60)],
+                           Unknown = levels(Age)[c(61)]
+                           )) %>%
+           group_by(Age_Bin) %>%
+           summarize(n=n()) %>%
+           ungroup() %>%
+           mutate(prop=n/sum(n))
+```
+group ranges -
+16-19 - Teenager
+20-29 - Twenties
+30-39 - Thirties
+40-49 - Forties
+50 -59 - Fifties
+60 - 69 - Sixties
+70-79 - Seventies
+80-89 - Eighties
+Unknown - 
 
 ###Q2: What role does income a factor in the frequency of police killings by region/state?
 
