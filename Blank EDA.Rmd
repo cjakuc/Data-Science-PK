@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 
 # Import Data Below
-# read_csv()
+PoliceKillings<-read_csv("PKcleanP2.csv")
 ```
 
 #Creator: Katharine Kurz
