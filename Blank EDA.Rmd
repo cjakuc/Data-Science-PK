@@ -70,7 +70,7 @@ Ages1 <- Ages %>%
                            Unknown = levels(Age)[c(61)]
                            )) %>%
            group_by(Age_Bin) %>%
-           summarize(n=n()) %>%
+           dplyr::summarize(n=n()) %>%
            ungroup() %>%
            mutate(prop=n/sum(n))
 ```
