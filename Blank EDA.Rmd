@@ -95,8 +95,19 @@ Unknown -
 ###Q1: What factors combined are most influential in predicting police killings in a city?
 
 ```{r}
-#
+PD = 
+  PoliceKillings %>% 
+  mutate( 
+    killed = ifelse("age">16, 1, 0), 
+    killed = factor(killed, levels=c("0","1"), labels = c("Alive","Dead")))
+  
+ggplot(PD) + 
+  geom_bar(mapping = aes(killed)) + 
+  theme_light() + 
+  ggtitle("Police Violence in 2015") + xlab("Status of Victims") + ylab("Count")
 ```
+
+This question is unable to be answered with the current dataset. Given that everyone is killed, we are unable to answer this question using a model. 
 
 ###Q2: Are law enforcement agencies that hold the highest killing rates primarily influenced by population size or other variables? 
 
