@@ -8,6 +8,8 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
+install.packages("Hmisc")
+library(Hmisc)
 
 # Import Data Below
 PoliceKillings<-read_csv("PKcleanP2.csv")
@@ -134,8 +136,6 @@ This question is unable to be answered with the current dataset. Given that ever
 ###Q1: Do areas with higher unemployment rates tend to have higher rates of police killings?
 
 ```{r}
-install.packages("Hmisc")
-library(Hmisc)
 URranges1=cut2(PoliceKillings$Unemployment_Rate,c(0.02,0.04,0.06,0.08,0.1,0.12,0.14,0.16,0.18,0.2,0.22,0.24,0.26,0.28,0.3,0.32,0.34,0.36,0.38,0.4)) 
 summary(URranges1) #splitting up unemployment into ranges and then finding the count for each bin
 
