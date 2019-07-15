@@ -17,17 +17,30 @@ PoliceKillings<-read_csv("PKcleanP2.csv")
 
 #Creator: Katharine Kurz
 
-Adding populations by state and adding populations by region
 
 ###Q1: What regions of the country have the highest rates of police killings?
 
 ```{r}
+# Adding populations by state and adding populations by region
 populations<-read_csv("StatePops.csv")
+pops<-populations[-1,3:11]
 
+
+# Import states by region
+region.data<-read_csv("StatesbyCensusRegion.csv")
+
+pops1<-pops %>%
+  select("GEO.display-label","respop72015") %>%
+  rename(State="GEO.display-label",Pop2015=respop72015) %>%
+  left_join(region.data,by="State") %>%
+  group_by(region) %>%
+  mutate(PopByRegion=sum())
+  # ungroup()
 
 regions<-PoliceKillings %>%
   group_by(region)
 ```
+
 
 ```{r}
 
