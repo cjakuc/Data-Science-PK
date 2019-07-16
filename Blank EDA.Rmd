@@ -310,7 +310,7 @@ ggplot(data=NoGun) +
 
 ###Q1: Do areas with higher unemployment rates tend to have higher rates of police killings?
 
-From the dataset it can be observed that most of the police killings occured in areas that have an unemployment rate that is above the national average of 3.6%. 438 of the 465 killings occured in areas that had unemployment rates above the national average meaning that higher unemployment rates could have a significant impact on where police killings occur.
+From the dataset it can be observed that most of the police killings occured in areas that have an unemployment rate that is above the national average of 3.6%. 438 of the 465 killings occured in areas that had unemployment rates above the national average meaning that higher unemployment rates could have a significant impact on where police killings occur. Additionally 235 of the killings occured in areas that had an unemployment rate greater than 10%, further substantiating the theory that high unemployment and police killings are correlated.
 ```{r}
 PK1=PoliceKillings%>%
   mutate(higherthanavg=if_else(Unemployment_Rate>0.036,"Yes","No"))
