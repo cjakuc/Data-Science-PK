@@ -13,9 +13,14 @@ library(Hmisc)
 library(modelr)
 library(dplyr)
 library(xtable)
+library(forcats)
+
 
 # Import Data Below
 PoliceKillings<-read_csv("PKcleanP2.csv")
+
+# Add DC to the South region
+PoliceKillings[52,"region"]<-"South"
 ```
 
 #Creator: Katharine Kurz
@@ -34,7 +39,7 @@ pops<-populations[-1,3:11]
 region.data<-read_csv("StatesbyCensusRegion.csv")
 
 
-
+# Joining state pop and region data
 pops1<-pops %>%
   select("GEO.display-label","respop72015") %>%
   rename(State="GEO.display-label",Pop2015=respop72015) %>%
@@ -44,8 +49,11 @@ pops1<-pops %>%
   mutate(PopByRegion=sum(Pop2015)) %>%
   ungroup() %>%
   mutate(Pop.prop=PopByRegion/PopByRegion[1])
+  
+# Create a tibble of uniqe regions, pops, and prop pops
+pops2<- tibble(PopByRegion=unique(pops1$PopByRegion),Region=unique(pops1$region),Pop.prop=unique(pops1$Pop.prop))
 
-
+# Converting region variable to a factor
 regions<-pops1 %>%
   mutate(region=as.factor(region)) %>%
   group_by(region)
@@ -53,10 +61,60 @@ levels(regions$region)
 ```
 
 ```{r}
-
+# Print out a plot of proportion of population in each state
 ggplot(regions) +
-  geom_col(aes(x=region,y=Pop.prop))+
+  geom_col(aes(x=fct_explicit_na(Region,na_level = "US Total"),y=Pop.prop))+
+  xlab("Region")+
+  ylab("Proportion of Population")+
   theme_minimal()
+```
+
+```{r}
+# Count how many police killings are in each state
+state.kills<-PoliceKillings %>%
+  select(State) %>%
+  mutate(State=as_factor(State)) %>%
+  group_by(State) %>%
+  dplyr::summarize(count=n())
+
+# Count how many police killings are in each region
+region.kills<-PoliceKillings %>%
+  select(region) %>%
+  mutate(region=as_factor(region)) %>%
+  group_by(region) %>%
+  dplyr::summarize(count=n())
+
+```
+
+```{r}
+# Create population state data frame
+states<- pops %>%
+  select("GEO.display-label","respop72015") %>%
+  rename(State="GEO.display-label",Pop2015=respop72015) %>%
+  mutate(Pop2015=as.numeric(Pop2015)) %>%
+  left_join(region.data,by="State") %>%
+  select(-region)
+
+# Join police killings by state with population state data and create a variable for kills per 100,000 per state
+states1<-states[-c(1),] %>%
+  select(Pop2015,State,state) %>%
+  right_join(state.kills,by=c("state"="State")) %>%
+  mutate(kill.pc.state=count/Pop2015*100000)
+
+# Join police killings by region with population regions data and create a variable for kills per 100,000 per region
+regions1<-regions[-c(1),] %>%
+  select(PopByRegion,Region) %>%
+  right_join(region.kills,by=c("Region"="region")) %>%
+  mutate(kill.pc.region=count/PopByRegion*100000)
+
+```
+
+```{r}
+# Create a graph for police killing rates per 100,000 people by region
+ggplot(regions1)+
+  geom_col(aes(x=Region,y=kill.pc.region))+
+  ylab("Kills Per 100,000 People")+
+  ggtitle("Kills per 100,000 People by Region")
 ```
 
 ###Q2: Which races/ethnicities are frequently subjected to police violence?
