@@ -324,7 +324,7 @@ URranges1=cut2(PoliceKillings$Unemployment_Rate,c(0.02,0.04,0.06,0.08,0.1,0.12,0
 summary(URranges1) #splitting up unemployment into ranges and then finding the count for each bin
 
 ggplot(PoliceKillings,aes(x=Unemployment_Rate))+geom_histogram(breaks=c(0.02,
-                      seq(0,0.5,0.05)),col="blue")+geom_vline(xintercept = 0.054,linetype="dashed")
+                      seq(0.05,0.5,0.05)),col="magenta")+geom_vline(xintercept = 0.054,linetype="dashed",color="yellow")
 
 #histogram of unemployment values
 
