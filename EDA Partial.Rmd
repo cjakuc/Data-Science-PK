@@ -272,7 +272,6 @@ Agencies3 =
 ggplot(data = Agencies3, mapping = aes(x = Population, y=freq, color = region)) + geom_point() + ylab("Median Population") + ylab("Frequency of Fatality") + ggtitle("Frequencies of Fatal Police Shootings Grouped by Department")
 ```
 
-```
 
 #Orator: Mohammad Aamin
 
