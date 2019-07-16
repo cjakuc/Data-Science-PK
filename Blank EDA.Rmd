@@ -105,7 +105,7 @@ states1<-states[-c(1),] %>%
   mutate(kill.pc.state=count/Pop2015*100000)
 
 # Join police killings by region with population regions data and create a variable for kills per 100,000 per region
-regions1<-regions[-c(1),] %>%
+regions1<-regions[] %>%
   select(PopByRegion,Region) %>%
   right_join(region.kills,by=c("Region"="region")) %>%
   mutate(kill.pc.region=count/PopByRegion*100000)
@@ -127,8 +127,8 @@ Races <- PoliceKillings %>%
   group_by(Race) %>%
   dplyr::summarize(count=n()) %>%
   ungroup() %>%
-  mutate(prop=count/sum(count))
-  
+  mutate(prop=count/sum(count)) 
+
 # Remove the row for unknown races
 Races<-Races[-c(which(Races$Race=="Unknown")),]
 
@@ -136,7 +136,6 @@ ggplot(Races) +
   geom_col(aes(x=Race,y=prop))+
   ylab("Proportion of total police killings")+
   ggtitle("Proportion of Total Police Killings by Race")
-  
 ```
 
 #Interpreter: Chris Jakuc
