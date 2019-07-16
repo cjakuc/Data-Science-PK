@@ -1,0 +1,371 @@
+---
+title: "Exploratory Data Analysis"
+author: "STOR 320 Group 4"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(Hmisc)
+library(modelr)
+library(dplyr)
+library(xtable)
+library(forcats)
+
+
+# Import Data Below
+PoliceKillings<-read_csv("PKcleanP2.csv")
+
+# Add DC to the South region
+PoliceKillings$region[which(PoliceKillings$State=="DC")]<-"South"
+```
+
+#Creator: Katharine Kurz
+
+
+###Q1: What regions of the country have the highest rates of police killings?
+
+```{r}
+# Adding populations by state and adding populations by region
+populations<-read_csv("StatePops.csv")
+pops<-populations[-1,3:11]
+
+
+# Import states by region
+region.data<-read_csv("StatesbyCensusRegion.csv")
+
+
+# Joining state pop and region data
+pops1<-pops %>%
+  select("GEO.display-label","respop72015") %>%
+  rename(State="GEO.display-label",Pop2015=respop72015) %>%
+  left_join(region.data,by="State") %>%
+  mutate(Pop2015=as.numeric(Pop2015)) %>%
+  group_by(region) %>%
+  mutate(PopByRegion=sum(Pop2015)) %>%
+  select(PopByRegion,region) %>%
+  ungroup() %>%
+  mutate(Pop.prop=PopByRegion/PopByRegion[1])
+
+# Create a tibble of uniqe regions, pops, and prop pops
+pops2<- tibble(PopByRegion=unique(pops1$PopByRegion),Region=unique(pops1$region),Pop.prop=unique(pops1$Pop.prop))
+
+# Converting region variable to a factor
+regions<-pops2 %>%
+  mutate(Region=as_factor(Region))
+levels(regions$Region)
+
+# Remove the row for US total police killings
+regions<-regions[-c(is.na(regions$Region)),]
+
+```
+
+```{r}
+# Print out a plot of proportion of population in each region
+ggplot(regions) +
+  geom_col(aes(x=fct_explicit_na(Region,na_level = "US Total"),y=Pop.prop))+
+  xlab("Region")+
+  ylab("Proportion of Population")+
+  ggtitle("Proportion of Total Population by Region")+
+  theme_minimal()
+```
+
+```{r}
+# Count how many police killings are in each state
+state.kills<-PoliceKillings %>%
+  select(State) %>%
+  mutate(State=as_factor(State)) %>%
+  group_by(State) %>%
+  dplyr::summarize(count=n())
+
+# Count how many police killings are in each region
+region.kills<-PoliceKillings %>%
+  select(region) %>%
+  mutate(region=as_factor(region)) %>%
+  group_by(region) %>%
+  dplyr::summarize(count=n())
+
+```
+
+```{r}
+# Create population state data frame
+states<- pops %>%
+  select("GEO.display-label","respop72015") %>%
+  rename(State="GEO.display-label",Pop2015=respop72015) %>%
+  mutate(Pop2015=as.numeric(Pop2015)) %>%
+  left_join(region.data,by="State") %>%
+  select(-region)
+
+# Join police killings by state with population state data and create a variable for kills per 100,000 per state
+states1<-states[-c(1),] %>%
+  select(Pop2015,State,state) %>%
+  right_join(state.kills,by=c("state"="State")) %>%
+  mutate(kill.pc.state=count/Pop2015*100000)
+
+# Join police killings by region with population regions data and create a variable for kills per 100,000 per region
+regions1<-regions %>%
+  select(PopByRegion,Region) %>%
+  right_join(region.kills,by=c("Region"="region")) %>%
+  mutate(kill.pc.region=count/PopByRegion*100000)
+
+```
+
+```{r}
+# Create a graph for police killing rates per 100,000 people by region
+ggplot(regions1)+
+  geom_col(aes(x=Region,y=kill.pc.region))+
+  ylab("Kills Per 100,000 People")+
+  ggtitle("Kills per 100,000 People by Region")
+```
+
+###Q2: Which races/ethnicities are frequently subjected to police violence?
+
+```{r}
+Races <- PoliceKillings %>% 
+  group_by(Race) %>%
+  dplyr::summarize(count=n()) %>%
+  ungroup() %>%
+  mutate(prop=count/sum(count)) 
+
+# Remove the row for unknown races
+Races<-Races[-c(which(Races$Race=="Unknown")),]
+
+ggplot(Races) +
+  geom_col(aes(x=Race,y=prop))+
+  ylab("Proportion of total police killings")+
+  ggtitle("Proportion of Total Police Killings by Race")
+```
+
+#Interpreter: Chris Jakuc
+
+###Q1: Which age groups are more likely to be affected by police killings?
+
+```{r}
+Ages <- PoliceKillings %>% 
+  mutate(Age = as.factor(Age)) %>%
+  group_by(Age)
+levels(Ages$Age)
+```
+
+```{r}
+Ages1 <- Ages %>%
+  mutate(Age_Bin=fct_collapse(Age,
+                           Teenager = levels(Age)[c(1:4)],
+                           Twenties = levels(Age)[c(5:14)],
+                           Thirties = levels(Age)[c(15:25)],
+                           Forties = levels(Age)[c(26:34)],
+                           Fifties = levels(Age)[c(35:44)],
+                           Sixties = levels(Age)[c(45:52)],
+                           Seventies =  levels(Age)[c(53:58)],
+                           Eighties = levels(Age)[c(59:60)],
+                           Unknown = levels(Age)[c(61)]
+                           )) %>%
+           group_by(Age_Bin) %>%
+           dplyr::summarize(n=n()) %>%
+           ungroup() %>%
+           mutate(prop=n/sum(n))
+           
+# Remove the row for unknown age
+Ages1<-Ages1[-c(which(Ages1$Age_Bin=="Unknown")),]
+```
+group ranges -
+16-19 - Teenager
+20-29 - Twenties
+30-39 - Thirties
+40-49 - Forties
+50 -59 - Fifties
+60 - 69 - Sixties
+70-79 - Seventies
+80-89 - Eighties
+Unknown - 
+
+```{r}
+ggplot(Ages1)+
+  geom_col(aes(x=Age_Bin,y=prop))+
+  xlab("Age Group")+
+  ylab("Proportion of Total Killings")+
+  ggtitle("Proportion of Total Killings by Age Group")+
+  theme_minimal()
+```
+
+###Q2: What role does income a factor in the frequency of police killings by region/state?
+
+
+```{r}
+mean.inc<-mean(PoliceKillings$med.tract.household.inc)
+
+ggplot(PoliceKillings)+
+  geom_histogram(aes(x=med.tract.household.inc),bins=20,fill='deepskyblue1')+
+  geom_vline(xintercept=mean.inc,linetype="dashed",color="red")+
+  facet_wrap(region~.)+
+  theme_dark()+
+  xlab("Median Household Income")+
+  ylab("Number of Deaths")+
+  theme(axis.text.x=element_text(angle=45,hjust=1))+
+  scale_x_continuous(breaks=c(25000,50000,75000,100000))
+```
+
+#Orator: Harrison Cho
+
+###Q1: What factors combined are most influential in predicting police killings in a city?
+
+```{r}
+PD = 
+  PoliceKillings %>% 
+  mutate( 
+    killed = ifelse("age">16, 1, 0), 
+    killed = factor(killed, levels=c("0","1"), labels = c("Alive","Dead")))
+  
+ggplot(PD) + 
+  geom_bar(mapping = aes(killed)) + 
+  theme_light() + 
+  ggtitle("Police Violence in 2015") + xlab("Status of Victims") + ylab("Count")
+```
+
+This question is unable to be answered with the current dataset. Given that everyone is killed, we are unable to answer this question using a model. 
+
+###Q2: Are law enforcement agencies that hold the highest killing rates primarily influenced by population size or other variables? 
+
+```{r}
+Agencies = 
+  PoliceKillings %>% 
+  arrange(Law_Enforcement_Agency) %>% 
+  group_by(Law_Enforcement_Agency) %>%
+  dplyr::summarize(n = n()) %>%
+  mutate( freq = n / sum(n))
+
+Agencies2 = inner_join(Agencies, PoliceKillings) %>%
+  select("Law_Enforcement_Agency","freq", -("n"), -("Name"), "Age":"region") 
+
+```
+
+```{r}
+Agencies = 
+  PoliceKillings %>% 
+  group_by(Law_Enforcement_Agency) %>%
+  dplyr::summarize(n = n()) %>%
+  mutate( freq = n / sum(n))
+
+Agencies2 = inner_join(Agencies, PoliceKillings) %>%
+  select("Law_Enforcement_Agency","freq", -("n"), -("Name"), "Age":"region") 
+
+Agencies3 = 
+  Agencies2 %>% 
+  group_by(Law_Enforcement_Agency) %>% 
+  mutate(Population = median(Population),
+         Proportion_White = median(Proportion_White), 
+         Proportion_Black = median(Proportion_Black), 
+         Proportion_Hispanic = median(Proportion_Hispanic), 
+         med.tract.personal.inc = median(med.tract.personal.inc),
+         med.tract.household.inc = median(med.tract.household.inc), 
+         med.county.household.inc = median(med.county.household.inc), 
+         Poverty_Rate = median(Poverty_Rate),
+         Unemployment_Rate = median(Unemployment_Rate),
+         Proportion_Attended_College = median(Proportion_Attended_College), 
+         inc.quint.nat = median(inc.quint.nat),
+         tractvcount.percentile = median(tractvcount.percentile),
+         Age = as.numeric(Age),
+         Age = median(Age))
+
+ggplot(data = Agencies3, mapping = aes(x = Population, y=freq, color = region)) + geom_point() + ylab("Median Population") + ylab("Frequency of Fatality") + ggtitle("Frequencies of Fatal Police Shootings Grouped by Department")
+```
+
+```
+
+#Orator: Mohammad Aamin
+
+###Q1: On a national level, does a relationship exist between the proportion of those who graduated college and the number of police killings?
+
+```{r}
+ggplot(data=PoliceKillings) + 
+  geom_histogram(mapping=aes(x=Proportion_Attended_College),bins=15,fill="deepskyblue1")+
+  labs(x="Proportion that Attended College",y="Number of Deaths",title="College Education vs. Police Killings") + theme_dark()
+```
+
+###Q2: Which uncommon police weapons result in fatalities at a higher frequency?
+
+```{r}
+unique(PoliceKillings$Cause_Of_Death)
+ggplot(data=PoliceKillings) +
+  geom_bar(aes(x=Cause_Of_Death))
+NoGun= filter(PoliceKillings, Cause_Of_Death != "Gunshot")
+ggplot(data=NoGun) +
+  geom_bar(aes(x=Cause_Of_Death), color="black",fill=c("red","blue","darkgreen","purple"),size=2) + 
+  xlab("Cause of Death") + ylab("Number of Deaths") + 
+  theme_light()
+```
+
+#Deliverer: Avinash Gandhi
+
+###Q1: Do areas with higher unemployment rates tend to have higher rates of police killings?
+
+From the dataset it can be observed that most of the police killings occured in areas that had an unemployment above the national rate in  the second quarter of 2015 which was 5.4%. 400 of the 465 killings occured in areas that had unemployment rates above the national average at that time meaning that higher unemployment rates could have a significant impact on where police killings occur. Additionally 235 of the killings occured in areas that had an unemployment rate greater than 10%, further substantiating the theory that high unemployment and police killings are correlated.
+```{r}
+PK1=PoliceKillings%>%
+  mutate(higherthanavg=if_else(Unemployment_Rate>0.054,"Yes","No"))
+table(PK1$higherthanavg) #count of whether each killing occured in an area that has an unemployment rate higher than the national average of 3.6%
+
+URranges1=cut2(PoliceKillings$Unemployment_Rate,c(0.02,0.04,0.06,0.08,0.1,0.12,0.14,0.16,0.18,0.2,0.22,0.24,0.26,0.28,0.3,0.32,0.34,0.36,0.38,0.4)) 
+summary(URranges1) #splitting up unemployment into ranges and then finding the count for each bin
+
+ggplot(PoliceKillings,aes(x=Unemployment_Rate))+geom_histogram(breaks=c(0.02,
+                      seq(0.05,0.5,0.05)),col="magenta")+geom_vline(xintercept = 0.054,linetype="dashed",color="yellow")
+
+#histogram of unemployment values
+
+```
+
+###Q2: Were more armed victims killed than unarmed victims?
+
+```{r}
+Armed1=table(PoliceKillings$Armed)
+print(Armed1)
+ggplot(PoliceKillings,aes(x=PoliceKillings$Armed))+geom_bar()+coord_flip()+xlab("Armed vs Unarmed")
+```
+
+# Follow up questions
+
+### New Questions Based Off Initial Investigation
+
+- Q1: WRITE_QUESTION_HERE
+- Q2: WRITE_QUESTION_HERE
+- Q3: WRITE_QUESTION_HERE 
+- Q4: WRITE_QUESTION_HERE
+
+### Investigation of Follow-up Questions
+
+GIVE WHAT 2 QUESTIONS YOU ATTEMPTED TO INVESTIGATE FURTHER IN COMPLETE SENTENCES (*Example:* Our group decided to investigate Q2 and Q4 in further detail.)
+
+SHOW AT LEAST 2 TABLES OR FIGURES BELOW THAT EXPLORE ANSWERS FOR THE QUESTIONS YOU ARE INVESTIGATING FURTHER.
+
+```{r}
+#
+```
+
+```{r}
+#
+```
+
+#Summary
+
+GIVE A 2 PARAGRAPH SUMMARY. 
+
+PARAGRAPH 1 SHOULD DESCRIBE WHAT YOU LEARNED ABOUT YOUR DATA FROM INVESTIGATING THE INITIAL QUESTIONS. DID YOU FIND ANYTHING UNUSUAL IN YOUR DATA? DID ANYTHING SURPRISE YOU? WHICH OF THE INITIAL QUESTIONS WERE HELPFUL IN LEADING YOU TO MORE QUESTIONS?
+
+PARAGRAPH 2 SHOULD SUMMARIZE WHAT YOU LEARNED FROM INVESTIGATING THE FOLLOW-UP QUESTIONS. WHY ARE THESE FOLLOW-UP QUESTIONS INTERESTING FOR INVESTIGATION? DESCRIBE THE TABLES/FIGURES YOU USED TO EXPLORE ANSWERS TO THESE FOLLOW-UP QUESTIONS? WHAT DID YOU LEARN FROM THE TABLES/FIGURES REGARDING THE FOLLOW-UP QUESTIONS YOU PROPOSED?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
