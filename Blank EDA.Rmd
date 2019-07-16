@@ -182,6 +182,25 @@ dplyr::summary(reg.three)
 reg.four=lm(freq~Population+Poverty_Rate+Unemployment_Rate + Proportion_White + med.tract.personal.inc,data=Agencies2)
 dplyr::summary(reg.four)
 
+agentrain2 =agentrain %>% 
+  add_predictions(reg.two,var="reg2pred") %>%
+  add_predictions(reg.three,var="reg3pred") %>%
+  add_predictions(reg.four,var="reg4pred")
+  
+agentest2 =agentest %>% 
+  add_predictions(reg.two,var="reg2pred") %>%
+  add_predictions(reg.three,var="reg3pred") %>%
+  add_predictions(reg.four,var="reg4pred")
+
+agentrain3 =agentrain2 %>% 
+  add_residuals(reg.two,var="reg2res") %>%
+  add_residuals(reg.three,var="reg3res") %>%
+  add_residuals(reg.four,var="reg4res")
+
+agentest3 =agentest2 %>% 
+  add_residuals(reg.two,var="reg2res") %>%
+  add_residuals(reg.three,var="reg3res") %>%
+  add_residuals(reg.four,var="reg4res")
 ```
 
 #Orator: Mohammad Aamin
