@@ -171,16 +171,16 @@ agentrain = anti_join(Agencies2,tibble(freq=test.loco),by="freq")
 agentest = semi_join(Agencies2,tibble(freq=test.loco),by="freq")
 
 reg.one=lm(freq~Population,data=Agencies2)
-summary(reg.one)
+dplyr::summary(reg.one)
 
 reg.two=lm(freq~Population+Poverty_Rate+Unemployment_Rate,data=Agencies2)
-summary(reg.two)
+dplyr::summary(reg.two)
 
 reg.three=lm(freq~Population+Poverty_Rate+Unemployment_Rate + Proportion_White + Proportion_Black,data=Agencies2)
-summary(reg.three)
+dplyr::summary(reg.three)
 
 reg.four=lm(freq~Population+Poverty_Rate+Unemployment_Rate + Proportion_White + med.tract.personal.inc,data=Agencies2)
-summary(reg.four)
+dplyr::summary(reg.four)
 
 ```
 
