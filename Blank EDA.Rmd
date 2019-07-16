@@ -46,17 +46,17 @@ pops1<-pops %>%
   mutate(Pop2015=as.numeric(Pop2015)) %>%
   group_by(region) %>%
   mutate(PopByRegion=sum(Pop2015)) %>%
+  select(PopByRegion,region) %>%
   ungroup() %>%
   mutate(Pop.prop=PopByRegion/PopByRegion[1])
-  
+
 # Create a tibble of uniqe regions, pops, and prop pops
 pops2<- tibble(PopByRegion=unique(pops1$PopByRegion),Region=unique(pops1$region),Pop.prop=unique(pops1$Pop.prop))
 
 # Converting region variable to a factor
-regions<-pops1 %>%
-  mutate(region=as.factor(region)) %>%
-  group_by(region)
-levels(regions$region)
+regions<-pops2 %>%
+  mutate(Region=as_factor(Region))
+levels(regions$Region)
 
 # Remove the row for US total police killings
 regions<-regions[-c(is.na(regions$Region)),]
