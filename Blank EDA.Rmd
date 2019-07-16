@@ -293,7 +293,17 @@ ggplot(data=PKcleaning1) +
 ###Q2: Which uncommon police weapons result in fatalities at a higher frequency?
 
 ```{r}
-#
+unique(PKcleaning1$Cause_Of_Death)
+
+ggplot(data=PKcleaning1) +
+  geom_bar(aes(x=Cause_Of_Death))
+
+NoGun= filter(PKcleaning1, Cause_Of_Death != "Gunshot")
+
+ggplot(data=NoGun) +
+  geom_bar(aes(x=Cause_Of_Death), color="black",fill=c("red","blue","darkgreen","purple"),size=2) + 
+  xlab("Cause of Death") + ylab("Number of Deaths") + 
+  theme_light()
 ```
 
 #Deliverer: Avinash Gandhi
