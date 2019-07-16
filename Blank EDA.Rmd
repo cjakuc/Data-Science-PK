@@ -302,6 +302,10 @@ ggplot(data=PKcleaning1) +
 ###Q1: Do areas with higher unemployment rates tend to have higher rates of police killings?
 
 ```{r}
+PK1=PoliceKillings%>%
+  mutate(higherthanavg=if_else(Unemployment_Rate>0.036,"Yes","No"))
+table(PK1$higherthanavg) #count of whether each killing occured in an area that has an unemployment rate higher than the national average of 3.6%
+
 URranges1=cut2(PoliceKillings$Unemployment_Rate,c(0.02,0.04,0.06,0.08,0.1,0.12,0.14,0.16,0.18,0.2,0.22,0.24,0.26,0.28,0.3,0.32,0.34,0.36,0.38,0.4)) 
 summary(URranges1) #splitting up unemployment into ranges and then finding the count for each bin
 
