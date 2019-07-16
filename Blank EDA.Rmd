@@ -21,6 +21,7 @@ PoliceKillings<-read_csv("PKcleanP2.csv")
 ###Q1: What regions of the country have the highest rates of police killings?
 
 ```{r}
+```{r}
 # Adding populations by state and adding populations by region
 populations<-read_csv("StatePops.csv")
 pops<-populations[-1,3:11]
@@ -29,23 +30,30 @@ pops<-populations[-1,3:11]
 # Import states by region
 region.data<-read_csv("StatesbyCensusRegion.csv")
 
+
+
 pops1<-pops %>%
   select("GEO.display-label","respop72015") %>%
   rename(State="GEO.display-label",Pop2015=respop72015) %>%
   left_join(region.data,by="State") %>%
+  mutate(Pop2015=as.numeric(Pop2015)) %>%
   group_by(region) %>%
-  mutate(PopByRegion=sum())
-  # ungroup()
+  mutate(PopByRegion=sum(Pop2015)) %>%
+  ungroup() %>%
+  mutate(Pop.prop=PopByRegion/PopByRegion[1])
 
-regions<-PoliceKillings %>%
+
+regions<-pops1 %>%
+  mutate(region=as.factor(region)) %>%
   group_by(region)
+levels(regions$region)
 ```
-
 
 ```{r}
 
 ggplot(regions) +
-  geom_bar(aes(x=region))
+  geom_col(aes(x=region,y=Pop.prop))+
+  theme_minimal()
 ```
 
 ###Q2: Which races/ethnicities are frequently subjected to police violence?
@@ -66,9 +74,9 @@ ggplot(Races) +
 Ages <- PoliceKillings %>% 
   mutate(Age = as.factor(Age)) %>%
   group_by(Age)
-str(Ages)
 levels(Ages$Age)
 ```
+
 ```{r}
 Ages1 <- Ages %>%
   mutate(Age_Bin=fct_collapse(Age,
@@ -97,6 +105,14 @@ group ranges -
 70-79 - Seventies
 80-89 - Eighties
 Unknown - 
+
+```{r}
+ggplot(Ages1)+
+  geom_col(aes(x=Age_Bin,y=prop))+
+  xlab("Age Group")+
+  ylab("Proportion of Total Killings")+
+  theme_minimal()
+```
 
 ###Q2: What role does income a factor in the frequency of police killings by region/state?
 
