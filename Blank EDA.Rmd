@@ -286,7 +286,9 @@ agentest3 =agentest2 %>%
 ###Q1: On a national level, does a relationship exist between the proportion of those who graduated college and the number of police killings?
 
 ```{r}
-#
+ggplot(data=PKcleaning1) + 
+  geom_histogram(mapping=aes(x=Proportion_Attended_College),bins=15,fill="deepskyblue1")+
+  labs(x="Proportion that Attended College",y="Number of Deaths",title="College Education vs. Police Killings") + theme_dark()
 ```
 
 ###Q2: Which uncommon police weapons result in fatalities at a higher frequency?
