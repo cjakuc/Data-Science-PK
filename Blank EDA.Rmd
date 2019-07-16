@@ -10,6 +10,9 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 install.packages("Hmisc")
 library(Hmisc)
+library(modelr)
+library(dlpyr)
+library(xtable)
 
 # Import Data Below
 PoliceKillings<-read_csv("PKcleanP2.csv")
