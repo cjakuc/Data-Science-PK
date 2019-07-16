@@ -105,7 +105,7 @@ states1<-states[-c(1),] %>%
   mutate(kill.pc.state=count/Pop2015*100000)
 
 # Join police killings by region with population regions data and create a variable for kills per 100,000 per region
-regions1<-regions[] %>%
+regions1<-regions %>%
   select(PopByRegion,Region) %>%
   right_join(region.kills,by=c("Region"="region")) %>%
   mutate(kill.pc.region=count/PopByRegion*100000)
@@ -240,50 +240,35 @@ Agencies2 = inner_join(Agencies, PoliceKillings) %>%
 ```
 
 ```{r}
-Agencies2 %>% 
-  ggplot()+
-  geom_boxplot(aes(x=region, y = freq))+
-  theme_minimal()
+Agencies = 
+  PoliceKillings %>% 
+  group_by(Law_Enforcement_Agency) %>%
+  dplyr::summarize(n = n()) %>%
+  mutate( freq = n / sum(n))
+
+Agencies2 = inner_join(Agencies, PoliceKillings) %>%
+  select("Law_Enforcement_Agency","freq", -("n"), -("Name"), "Age":"region") 
+
+Agencies3 = 
+  Agencies2 %>% 
+  group_by(Law_Enforcement_Agency) %>% 
+  mutate(Population = median(Population),
+         Proportion_White = median(Proportion_White), 
+         Proportion_Black = median(Proportion_Black), 
+         Proportion_Hispanic = median(Proportion_Hispanic), 
+         med.tract.personal.inc = median(med.tract.personal.inc),
+         med.tract.household.inc = median(med.tract.household.inc), 
+         med.county.household.inc = median(med.county.household.inc), 
+         Poverty_Rate = median(Poverty_Rate),
+         Unemployment_Rate = median(Unemployment_Rate),
+         Proportion_Attended_College = median(Proportion_Attended_College), 
+         inc.quint.nat = median(inc.quint.nat),
+         tractvcount.percentile = median(tractvcount.percentile),
+         Age = as.numeric(Age),
+         Age = median(Age))
+
+ggplot(data = Agencies3, mapping = aes(x = Population, y=freq, color = region)) + geom_point() + ylab("Median Population") + ylab("Frequency of Fatality") + ggtitle("Frequencies of Fatal Police Shootings Grouped by Department")
 ```
-
-```{r}
-set.seed(252)
-test.loco=sample(x=unique(Agencies2$freq),size=3,replace=F)
-
-agentrain = anti_join(Agencies2,tibble(freq=test.loco),by="freq")
-agentest = semi_join(Agencies2,tibble(freq=test.loco),by="freq")
-
-reg.two=lm(freq~Population,data=Agencies2)
-summary(reg.two)
-
-reg.two=lm(freq~Population+Poverty_Rate+Unemployment_Rate,data=Agencies2)
-summary(reg.two)
-
-reg.three=lm(freq~Population+Poverty_Rate+Unemployment_Rate + Proportion_White,data=Agencies2)
-summary(reg.three)
-
-reg.four=lm(freq~Population+Poverty_Rate+Unemployment_Rate + Proportion_White + med.tract.personal.inc,data=Agencies2)
-summary(reg.four)
-
-agentrain2 =agentrain %>% 
-  add_predictions(reg.two,var="reg2pred") %>%
-  add_predictions(reg.three,var="reg3pred") %>%
-  add_predictions(reg.four,var="reg4pred")
-  
-agentest2 =agentest %>% 
-  add_predictions(reg.two,var="reg2pred") %>%
-  add_predictions(reg.three,var="reg3pred") %>%
-  add_predictions(reg.four,var="reg4pred")
-
-agentrain3 =agentrain2 %>% 
-  add_residuals(reg.two,var="reg2res") %>%
-  add_residuals(reg.three,var="reg3res") %>%
-  add_residuals(reg.four,var="reg4res")
-
-agentest3 =agentest2 %>% 
-  add_residuals(reg.two,var="reg2res") %>%
-  add_residuals(reg.three,var="reg3res") %>%
-  add_residuals(reg.four,var="reg4res")
 
 ```
 
