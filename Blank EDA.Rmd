@@ -20,7 +20,7 @@ library(forcats)
 PoliceKillings<-read_csv("PKcleanP2.csv")
 
 # Add DC to the South region
-PoliceKillings[52,"region"]<-"South"
+PoliceKillings$region[which(PoliceKillings$State=="DC")]<-"South"
 ```
 
 #Creator: Katharine Kurz
@@ -28,7 +28,6 @@ PoliceKillings[52,"region"]<-"South"
 
 ###Q1: What regions of the country have the highest rates of police killings?
 
-```{r}
 ```{r}
 # Adding populations by state and adding populations by region
 populations<-read_csv("StatePops.csv")
@@ -58,14 +57,19 @@ regions<-pops1 %>%
   mutate(region=as.factor(region)) %>%
   group_by(region)
 levels(regions$region)
+
+# Remove the row for US total police killings
+regions<-regions[-c(is.na(regions$Region)),]
+
 ```
 
 ```{r}
-# Print out a plot of proportion of population in each state
+# Print out a plot of proportion of population in each region
 ggplot(regions) +
   geom_col(aes(x=fct_explicit_na(Region,na_level = "US Total"),y=Pop.prop))+
   xlab("Region")+
   ylab("Proportion of Population")+
+  ggtitle("Proportion of Total Population by Region")+
   theme_minimal()
 ```
 
@@ -121,10 +125,19 @@ ggplot(regions1)+
 
 ```{r}
 Races <- PoliceKillings %>% 
-  group_by(Race)
+  group_by(Race) %>%
+  dplyr::summarize(count=n()) %>%
+  ungroup() %>%
+  mutate(prop=count/sum(count))
+  
+# Remove the row for unknown races
+Races<-Races[-c(which(Races$Race=="Unknown")),]
 
 ggplot(Races) +
-  geom_bar(aes(x=Race))
+  geom_col(aes(x=Race,y=prop))+
+  ylab("Proportion of total police killings")+
+  ggtitle("Proportion of Total Police Killings by Race")
+  
 ```
 
 #Interpreter: Chris Jakuc
@@ -155,6 +168,9 @@ Ages1 <- Ages %>%
            dplyr::summarize(n=n()) %>%
            ungroup() %>%
            mutate(prop=n/sum(n))
+           
+# Remove the row for unknown age
+Ages1<-Ages1[-c(which(Ages1$Age_Bin=="Unknown")),]
 ```
 group ranges -
 16-19 - Teenager
@@ -172,6 +188,7 @@ ggplot(Ages1)+
   geom_col(aes(x=Age_Bin,y=prop))+
   xlab("Age Group")+
   ylab("Proportion of Total Killings")+
+  ggtitle("Proportion of Total Killings by Age Group")+
   theme_minimal()
 ```
 
