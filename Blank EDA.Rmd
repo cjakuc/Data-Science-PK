@@ -285,7 +285,7 @@ agentest3 =agentest2 %>%
 ###Q1: On a national level, does a relationship exist between the proportion of those who graduated college and the number of police killings?
 
 ```{r}
-ggplot(data=PKcleaning1) + 
+ggplot(data=PoliceKillings) + 
   geom_histogram(mapping=aes(x=Proportion_Attended_College),bins=15,fill="deepskyblue1")+
   labs(x="Proportion that Attended College",y="Number of Deaths",title="College Education vs. Police Killings") + theme_dark()
 ```
@@ -293,13 +293,10 @@ ggplot(data=PKcleaning1) +
 ###Q2: Which uncommon police weapons result in fatalities at a higher frequency?
 
 ```{r}
-unique(PKcleaning1$Cause_Of_Death)
-
-ggplot(data=PKcleaning1) +
+unique(PoliceKillings$Cause_Of_Death)
+ggplot(data=PoliceKillings) +
   geom_bar(aes(x=Cause_Of_Death))
-
-NoGun= filter(PKcleaning1, Cause_Of_Death != "Gunshot")
-
+NoGun= filter(PoliceKillings, Cause_Of_Death != "Gunshot")
 ggplot(data=NoGun) +
   geom_bar(aes(x=Cause_Of_Death), color="black",fill=c("red","blue","darkgreen","purple"),size=2) + 
   xlab("Cause of Death") + ylab("Number of Deaths") + 
