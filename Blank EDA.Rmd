@@ -293,7 +293,9 @@ ggplot(PoliceKillings,aes(Unemployment_Rate))+geom_histogram(bins=10,binwidth=0.
 ###Q2: Were more armed victims killed than unarmed victims?
 
 ```{r}
-#
+Armed1=table(PoliceKillings$Armed)
+print(Armed1)
+ggplot(PoliceKillings,aes(x=PoliceKillings$Armed))+geom_bar()+coord_flip()+xlab("Armed vs Unarmed")
 ```
 
 # Follow up questions
