@@ -11,7 +11,7 @@ library(tidyverse)
 install.packages("Hmisc")
 library(Hmisc)
 library(modelr)
-library(dlpyr)
+library(dplyr)
 library(xtable)
 
 # Import Data Below
@@ -150,7 +150,7 @@ Agencies =
   PoliceKillings %>% 
   arrange(Law_Enforcement_Agency) %>% 
   group_by(Law_Enforcement_Agency) %>%
-  dplyer::summarize(n = n()) %>%
+  dplyr::summarize(n = n()) %>%
   mutate( freq = n / sum(n))
 
 Agencies2 = inner_join(Agencies, PoliceKillings) %>%
