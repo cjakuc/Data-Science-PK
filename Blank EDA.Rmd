@@ -195,7 +195,15 @@ ggplot(Ages1)+
 
 
 ```{r}
-#
+mean.inc<-mean(PoliceKillings$med.tract.household.inc)
+
+ggplot(PoliceKillings)+
+  geom_histogram(aes(x=med.tract.household.inc),bins=20,fill='deepskyblue1')+
+  geom_vline(xintercept=mean.inc,linetype="dashed",color="red")+
+  facet_wrap(region~.)+
+  theme_dark()+
+  xlab("Median Household Income")+
+  ylab("Number of Deaths")
 ```
 
 #Orator: Harrison Cho
