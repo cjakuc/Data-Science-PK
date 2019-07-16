@@ -163,24 +163,23 @@ Agencies2 %>%
 ```
 
 ```{r}
-
 set.seed(252)
 test.loco=sample(x=unique(Agencies2$freq),size=3,replace=F)
 
 agentrain = anti_join(Agencies2,tibble(freq=test.loco),by="freq")
 agentest = semi_join(Agencies2,tibble(freq=test.loco),by="freq")
 
-reg.one=lm(freq~Population,data=Agencies2)
-dplyr::summary(reg.one)
+reg.two=lm(freq~Population,data=Agencies2)
+summary(reg.two)
 
 reg.two=lm(freq~Population+Poverty_Rate+Unemployment_Rate,data=Agencies2)
-dplyr::summary(reg.two)
+summary(reg.two)
 
-reg.three=lm(freq~Population+Poverty_Rate+Unemployment_Rate + Proportion_White + Proportion_Black,data=Agencies2)
-dplyr::summary(reg.three)
+reg.three=lm(freq~Population+Poverty_Rate+Unemployment_Rate + Proportion_White,data=Agencies2)
+summary(reg.three)
 
 reg.four=lm(freq~Population+Poverty_Rate+Unemployment_Rate + Proportion_White + med.tract.personal.inc,data=Agencies2)
-dplyr::summary(reg.four)
+summary(reg.four)
 
 agentrain2 =agentrain %>% 
   add_predictions(reg.two,var="reg2pred") %>%
@@ -201,6 +200,7 @@ agentest3 =agentest2 %>%
   add_residuals(reg.two,var="reg2res") %>%
   add_residuals(reg.three,var="reg3res") %>%
   add_residuals(reg.four,var="reg4res")
+
 ```
 
 #Orator: Mohammad Aamin
