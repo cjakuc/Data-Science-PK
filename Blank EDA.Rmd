@@ -222,6 +222,7 @@ This question is unable to be answered with the current dataset. Given that ever
 ```{r}
 Agencies = 
   PoliceKillings %>% 
+  arrange(Law_Enforcement_Agency) %>% 
   group_by(Law_Enforcement_Agency) %>%
   dplyr::summarize(n = n()) %>%
   mutate( freq = n / sum(n))
@@ -229,32 +230,62 @@ Agencies =
 Agencies2 = inner_join(Agencies, PoliceKillings) %>%
   select("Law_Enforcement_Agency","freq", -("n"), -("Name"), "Age":"region") 
 
-Agencies3 = 
-  Agencies2 %>% 
-  group_by(Law_Enforcement_Agency) %>% 
-  mutate(Population = median(Population),
-         Proportion_White = median(Proportion_White), 
-         Proportion_Black = median(Proportion_Black), 
-         Proportion_Hispanic = median(Proportion_Hispanic), 
-         med.tract.personal.inc = median(med.tract.personal.inc),
-         med.tract.household.inc = median(med.tract.household.inc), 
-         med.county.household.inc = median(med.county.household.inc), 
-         Poverty_Rate = median(Poverty_Rate),
-         Unemployment_Rate = median(Unemployment_Rate),
-         Proportion_Attended_College = median(Proportion_Attended_College), 
-         inc.quint.nat = median(inc.quint.nat),
-         tractvcount.percentile = median(tractvcount.percentile),
-         Age = as.numeric(Age),
-         Age = median(Age))
-
-ggplot(data = Agencies3, mapping = aes(x = Population, y=freq, color = region)) + geom_point() + ylab("Median Population") + ylab("Frequency of Fatality") + ggtitle("Frequencies of Fatal Police Shootings Grouped by Department")
 ```
+
+```{r}
+Agencies2 %>% 
+  ggplot()+
+  geom_boxplot(aes(x=region, y = freq))+
+  theme_minimal()
+```
+
+```{r}
+set.seed(252)
+test.loco=sample(x=unique(Agencies2$freq),size=3,replace=F)
+
+agentrain = anti_join(Agencies2,tibble(freq=test.loco),by="freq")
+agentest = semi_join(Agencies2,tibble(freq=test.loco),by="freq")
+
+reg.two=lm(freq~Population,data=Agencies2)
+summary(reg.two)
+
+reg.two=lm(freq~Population+Poverty_Rate+Unemployment_Rate,data=Agencies2)
+summary(reg.two)
+
+reg.three=lm(freq~Population+Poverty_Rate+Unemployment_Rate + Proportion_White,data=Agencies2)
+summary(reg.three)
+
+reg.four=lm(freq~Population+Poverty_Rate+Unemployment_Rate + Proportion_White + med.tract.personal.inc,data=Agencies2)
+summary(reg.four)
+
+agentrain2 =agentrain %>% 
+  add_predictions(reg.two,var="reg2pred") %>%
+  add_predictions(reg.three,var="reg3pred") %>%
+  add_predictions(reg.four,var="reg4pred")
+  
+agentest2 =agentest %>% 
+  add_predictions(reg.two,var="reg2pred") %>%
+  add_predictions(reg.three,var="reg3pred") %>%
+  add_predictions(reg.four,var="reg4pred")
+
+agentrain3 =agentrain2 %>% 
+  add_residuals(reg.two,var="reg2res") %>%
+  add_residuals(reg.three,var="reg3res") %>%
+  add_residuals(reg.four,var="reg4res")
+
+agentest3 =agentest2 %>% 
+  add_residuals(reg.two,var="reg2res") %>%
+  add_residuals(reg.three,var="reg3res") %>%
+  add_residuals(reg.four,var="reg4res")
+
+```
+
 #Orator: Mohammad Aamin
 
 ###Q1: On a national level, does a relationship exist between the proportion of those who graduated college and the number of police killings?
 
 ```{r}
-ggplot(data=PoliceKillings) + 
+ggplot(data=PKcleaning1) + 
   geom_histogram(mapping=aes(x=Proportion_Attended_College),bins=15,fill="deepskyblue1")+
   labs(x="Proportion that Attended College",y="Number of Deaths",title="College Education vs. Police Killings") + theme_dark()
 ```
@@ -262,10 +293,13 @@ ggplot(data=PoliceKillings) +
 ###Q2: Which uncommon police weapons result in fatalities at a higher frequency?
 
 ```{r}
-unique(PoliceKillings$Cause_Of_Death)
-ggplot(data=PoliceKillings) +
+unique(PKcleaning1$Cause_Of_Death)
+
+ggplot(data=PKcleaning1) +
   geom_bar(aes(x=Cause_Of_Death))
-NoGun= filter(PoliceKillings, Cause_Of_Death != "Gunshot")
+
+NoGun= filter(PKcleaning1, Cause_Of_Death != "Gunshot")
+
 ggplot(data=NoGun) +
   geom_bar(aes(x=Cause_Of_Death), color="black",fill=c("red","blue","darkgreen","purple"),size=2) + 
   xlab("Cause of Death") + ylab("Number of Deaths") + 
@@ -276,6 +310,7 @@ ggplot(data=NoGun) +
 
 ###Q1: Do areas with higher unemployment rates tend to have higher rates of police killings?
 
+From the dataset it can be observed that most of the police killings occured in areas that have an unemployment rate that is above the national average of 3.6%. 438 of the 465 killings occured in areas that had unemployment rates above the national average meaning that higher unemployment rates could have a significant impact on where police killings occur.
 ```{r}
 PK1=PoliceKillings%>%
   mutate(higherthanavg=if_else(Unemployment_Rate>0.036,"Yes","No"))
