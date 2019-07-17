@@ -134,8 +134,10 @@ Races<-Races[-c(which(Races$Race=="Unknown")),]
 
 ggplot(Races) +
   geom_col(aes(x=Race,y=prop))+
+  facet_wrap(region~.)+
   ylab("Proportion of total police killings")+
-  ggtitle("Proportion of Total Police Killings by Race")
+  theme(axis.text.x=element_text(angle=45,hjust=1))+
+  ggtitle("Proportion of Total Police Killings by Race and Region")
 ```
 
 #Interpreter: Chris Jakuc
