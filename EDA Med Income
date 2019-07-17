@@ -1,0 +1,68 @@
+```{r}
+library(tidyverse)    #Essential Functions
+library(modelr)       #Helpful Functions in Modeling
+library(purrr)
+library(broom)
+```
+
+```{r}
+income_cv1 = PoliceKillings %>% 
+  select(-Name, -Latitude, -Longitude,everything()) %>% 
+  mutate( 
+    Age = as.numeric(Age),
+    Gender = as.factor(Gender), 
+    Race = as.factor(Race), 
+    State = as.factor(State),
+    Region = as.factor(region)) 
+```
+
+
+```{r}
+str(income_cv1)
+firstmod = lm(med.tract.household.inc~Population,data=income_cv1)
+secmod = lm(med.tract.household.inc~Population + Poverty_Rate, data=income_cv1)
+threemod = lm(med.tract.household.inc~Population + Poverty_Rate, data=income_cv1)
+fourmod = lm(med.tract.household.inc~Population + Poverty_Rate + Age, data=income_cv1)
+fivemod = lm(med.tract.household.inc~Population + Poverty_Rate + Age + Proportion_Attended_College, data=income_cv1)
+sixmod = lm(med.tract.household.inc~Population + Poverty_Rate + Age + Proportion_Attended_College + Proportion_White, data=income_cv1)
+
+tidy(firstmod)
+tidy(secmod)
+tidy(threemod)
+tidy(fourmod)
+tidy(fivemod)
+tidy(sixmod)
+```
+
+
+```{r}
+income_cv2 = income_cv1 %>% 
+  crossv_kfold(5)
+
+head(income_cv2)
+```
+
+
+```{r}
+train.model.func1 = function(data){
+  fistmod = lm(med.tract.household.inc~Population,data=data)
+  return(fistmod)
+}
+income_cv3 = income_cv2 %>%
+  mutate(tr.model = map(train,train.model.func1)) 
+
+income_cv3_predict = income_cv3 %>% 
+  mutate(predict = map2(test,tr.model, ~augment(.y,newdata=.x))) %>% 
+  select(predict) %>% 
+  unnest()
+
+head(income_cv3_predict)
+
+RMSE.func=function(actual,predict){
+  mse=mean((actual-predict)^2,na.rm=T)
+  rmse=sqrt(mse)
+  return(rmse)
+}
+
+RMSE.func(actual=income_cv3_predict$med.tract.household.inc, predict=income_cv3_predict$.fitted)
+```
