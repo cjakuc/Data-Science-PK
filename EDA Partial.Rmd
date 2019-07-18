@@ -124,7 +124,7 @@ ggplot(regions1)+
 
 ```{r}
 Races <- PoliceKillings %>% 
-  group_by(Race) %>%
+  group_by(Race,region) %>%
   dplyr::summarize(count=n()) %>%
   ungroup() %>%
   mutate(prop=count/sum(count)) 
@@ -330,7 +330,66 @@ ggplot(PoliceKillings,aes(x=PoliceKillings$Armed))+geom_bar()+coord_flip()+xlab(
 
 ### New Questions Based Off Initial Investigation
 
-- Q1: WRITE_QUESTION_HERE
+- Q1: How do gun laws relate to the proportional frequency of police killings?
+
+Gun laws taken from https://www.gunstocarry.com/gun-laws-state/#states
+
+```{r}
+
+# Import Gun Laws csv
+GunLaws<-read_csv("StateKills1.csv")
+
+# Adding full state names to gun law data
+GunLawsStates<-GunLaws %>%
+  left_join(region.data,by=c("State"="state")) %>%
+  rename(state=State.y) %>%
+  select(-State)
+
+# Joining state pop and gun law data
+gpops<-pops %>%
+  select("GEO.display-label","respop72015") %>%
+  rename(State="GEO.display-label",Pop2015=respop72015) %>%
+  left_join(GunLawsStates,by=c("State"="state")) %>%
+  mutate(Pop2015=as.numeric(Pop2015)) 
+  
+
+# Turning the gun law metrics into factors to run a regression later
+GunLaws1 <- gpops %>%
+  mutate("Firearm Registration"=as.factor(gpops$`Firearm Registration`)) %>%
+  mutate("Open Carry"=as.factor(gpops$`Open Carry`),
+         "Open Carry Permit"=as.factor(gpops$`Open Carry Permit`),
+         "Background Checks on Private Sales"=as.factor(gpops$`Background Checks on Private Sales`)) %>%
+  mutate("KillCount"=count) %>%
+  select(-count)
+  
+# Find how many unique groups of gun laws there are and how many kills per capita are in each
+GunLaws2<-GunLaws1[-c(1),]
+GunLaws3<-GunLaws2[-c(which(is.na(GunLaws2$KillCount))),] %>%
+  group_by(`Firearm Registration`,
+           `Open Carry`,
+           `Open Carry Permit`,
+           `Background Checks on Private Sales`) %>%
+  dplyr::summarize(count.gunlaws.types=n(),
+                   KillCount=sum(KillCount),
+                   Population=sum(Pop2015),
+                   Kill.pc=KillCount/Population*100000) %>%
+  ungroup() %>%
+  
+  # Give an arbitrary number to each unique pairing of gun laws
+  mutate(Laws=c(1:9))
+
+# Make a graph of kills per capita by gun law group
+ggplot(GunLaws3)+
+  geom_col(aes(x=Laws,y=Kill.pc),fill="red")+
+  xlab("Gun Control Law Groupings")+
+  scale_x_discrete(limits=c(1:9))+
+  ylab("Police Killings per 100,000 People")+
+  ggtitle("Police Killings per 100,000 People by Type of Gun Laws")+
+  theme_dark()+
+  theme_minimal()
+
+```
+
 - Q2: WRITE_QUESTION_HERE
 - Q3: WRITE_QUESTION_HERE 
 - Q4: WRITE_QUESTION_HERE
