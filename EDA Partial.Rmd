@@ -646,10 +646,172 @@ mae.func=function(actual,predict){
 }
 
 RMSE.func=function(actual,predict){
+```{r}
+library(tidyverse)    #Essential Functions
+library(modelr)       #Helpful Functions in Modeling
+library(purrr)
+library(broom)
+```
+
+```{r}
+income_cv1 = PoliceKillings %>% 
+  select(-Name, -Latitude, -Longitude,everything()) %>% 
+  mutate( 
+    Age = as.numeric(Age),
+    Gender = as.factor(Gender), 
+    Race = as.factor(Race), 
+    State = as.factor(State),
+    Region = as.factor(region)) 
+```
+
+```{r}
+
+firstmod = lm(med.tract.household.inc~Population,data=income_cv1)
+tidy(firstmod)
+
+income_cv1_sec = income_cv1 %>% 
+  crossv_kfold(5)
+
+head(income_cv1_sec)
+
+train.model.func1 = function(data){
+  fistmod = lm(med.tract.household.inc~Population,data=data)
+  return(fistmod)
+}
+income_cv1_third = income_cv1_sec %>%
+  mutate(tr.model = map(train,train.model.func1)) 
+
+income_cv1_predict = income_cv1_third %>% 
+  mutate(predict = map2(test,tr.model, ~augment(.y,newdata=.x))) %>% 
+  select(predict) %>% 
+  unnest()
+
+head(income_cv1_predict)
+
+bias.func=function(actual,predict){
+  bias=mean((actual-predict),na.rm=T)
+  return(bias)
+}
+
+mae.func=function(actual,predict){
+  mae=mean(abs(actual-predict),na.rm=T)
+  return(mae)
+}
+
+RMSE.func=function(actual,predict){
   mse=mean((actual-predict)^2,na.rm=T)
   rmse=sqrt(mse)
   return(rmse)
 }
+bias.func(actual=income_cv1_predict$med.tract.household.inc, predict=income_cv1_predict$.fitted)
+mae.func(actual=income_cv1_predict$med.tract.household.inc, predict=income_cv1_predict$.fitted)
+RMSE.func(actual=income_cv1_predict$med.tract.household.inc, predict=income_cv1_predict$.fitted)
+```
+
+
+```{r}
+secmod = lm(med.tract.household.inc~Population + Poverty_Rate, data=income_cv1)
+tidy(secmod)
+
+income_cv2_sec = income_cv1 %>% 
+  crossv_kfold(5)
+
+train.model.func1 = function(data){
+  secmod = lm(med.tract.household.inc~Population + Poverty_Rate, data=income_cv1)
+  return(secmod)
+}
+income_cv2_third = income_cv2_sec %>%
+  mutate(tr.model = map(train,train.model.func1)) 
+
+income_cv2_predict = income_cv2_third %>% 
+  mutate(predict = map2(test,tr.model, ~augment(.y,newdata=.x))) %>% 
+  select(predict) %>% 
+  unnest()
+
+head(income_cv2_predict)
+
+bias.func(actual=income_cv2_predict$med.tract.household.inc, predict=income_cv2_predict$.fitted)
+mae.func(actual=income_cv2_predict$med.tract.household.inc, predict=income_cv2_predict$.fitted)
+RMSE.func(actual=income_cv2_predict$med.tract.household.inc, predict=income_cv2_predict$.fitted)
+
+```
+
+```{r}
+fourmod = lm(med.tract.household.inc~Population + Poverty_Rate + Age, data=income_cv1)
+tidy(fourmod)
+summary(fourmod)
+
+income_cv4_sec = income_cv1 %>% 
+  crossv_kfold(100)
+
+train.model.func1 = function(data){
+  fourmod = lm(med.tract.household.inc~Population + Poverty_Rate + Age, data=income_cv1)
+  return(fourmod)
+}
+income_cv4_third = income_cv4_sec %>%
+  mutate(tr.model = map(train,train.model.func1)) 
+
+income_cv4_predict = income_cv4_third %>% 
+  mutate(predict = map2(test,tr.model, ~augment(.y,newdata=.x))) %>% 
+  select(predict) %>% 
+  unnest()
+
+head(income_cv4_predict)
+
+bias.func(actual=income_cv4_predict$med.tract.household.inc, predict=income_cv4_predict$.fitted)
+mae.func(actual=income_cv4_predict$med.tract.household.inc, predict=income_cv4_predict$.fitted)
+RMSE.func(actual=income_cv4_predict$med.tract.household.inc, predict=income_cv4_predict$.fitted)
+```
+```{r}
+fivemod = lm(med.tract.household.inc~Population + Poverty_Rate + Age + Proportion_Attended_College, data=income_cv1)
+tidy(fivemod)
+summary(fivemod)
+
+income_cv5_sec = income_cv1 %>% 
+  crossv_kfold(100)
+
+train.model.func1 = function(data){
+  fivemod = lm(med.tract.household.inc~Population + Poverty_Rate + Age + Proportion_Attended_College, data=income_cv1)
+  return(fivemod)
+}
+income_cv5_third = income_cv5_sec %>%
+  mutate(tr.model = map(train,train.model.func1)) 
+
+income_cv5_predict = income_cv5_third %>% 
+  mutate(predict = map2(test,tr.model, ~augment(.y,newdata=.x))) %>% 
+  select(predict) %>% 
+  unnest()
+
+head(income_cv5_predict)
+
+bias.func(actual=income_cv5_predict$med.tract.household.inc, predict=income_cv5_predict$.fitted)
+mae.func(actual=income_cv5_predict$med.tract.household.inc, predict=income_cv5_predict$.fitted)
+RMSE.func(actual=income_cv5_predict$med.tract.household.inc, predict=income_cv5_predict$.fitted)
+```
+
+```{r}
+sixmod = lm(med.tract.household.inc~Population + Poverty_Rate + Age + Proportion_Attended_College + Proportion_White + Race + Region + Race*Region, data=income_cv1)
+tidy(sixmod)
+summary(sixmod)
+
+income_cv6_sec = income_cv1 %>% 
+  crossv_kfold(100)
+
+train.model.func1 = function(data){
+  sixmod = lm(med.tract.household.inc~Population + Poverty_Rate + Age + Proportion_Attended_College + Proportion_White + Race + Region + Race*Region, data=income_cv1)
+tidy(sixmod)
+  return(sixmod)
+}
+income_cv6_third = income_cv6_sec %>%
+  mutate(tr.model = map(train,train.model.func1)) 
+
+income_cv6_predict = income_cv6_third %>% 
+  mutate(predict = map2(test,tr.model, ~augment(.y,newdata=.x))) %>% 
+  select(predict) %>% 
+  unnest()
+
+head(income_cv6_predict)
+
 bias.func(actual=income_cv6_predict$med.tract.household.inc, predict=income_cv6_predict$.fitted)
 mae.func(actual=income_cv6_predict$med.tract.household.inc, predict=income_cv6_predict$.fitted)
 RMSE.func(actual=income_cv6_predict$med.tract.household.inc, predict=income_cv6_predict$.fitted)
@@ -664,18 +826,6 @@ table <- as.table(table)
 table
 
 
-```
-
-# Basic Linear Model - Tested Using Cross Validation 
-
-```{r}
-table2=xtable(table,digits=4,align=c("l","l","l","l"))
-formattable(table2)
-```
-
-```{r}
-#
-```
 
 #Summary
 
