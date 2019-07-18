@@ -13,6 +13,7 @@ library(modelr)
 library(dplyr)
 library(xtable)
 library(forcats)
+library(formattable)
 
 
 # Import Data Below
@@ -404,6 +405,9 @@ ggplot(GunLaws3)+
   ggtitle("Police Killings per 100,000 People by Type of Gun Laws")+
   theme_dark()+
   theme_minimal()
+  
+formattable(GunLaws3)
+
 
 ```
 
