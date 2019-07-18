@@ -355,13 +355,15 @@ gpops<-pops %>%
 
 # Turning the gun law metrics into factors to run a regression later
 GunLaws1 <- gpops %>%
-  mutate("Firearm Registration"=as.factor(gpops$`Firearm Registration`)) %>%
-  mutate("Open Carry"=as.factor(gpops$`Open Carry`),
-         "Open Carry Permit"=as.factor(gpops$`Open Carry Permit`),
-         "Background Checks on Private Sales"=as.factor(gpops$`Background Checks on Private Sales`)) %>%
+  mutate("Firearm Registration"=factor(gpops$`Firearm Registration`)) %>%
+  mutate("Open Carry"=factor(gpops$`Open Carry`),
+         "Open Carry Permit"=factor(gpops$`Open Carry Permit`),
+         "Background Checks on Private Sales"=factor(gpops$`Background Checks on Private Sales`)) %>%
   mutate("KillCount"=count) %>%
   select(-count)
   
+str(GunLaws1)
+
 # Find how many unique groups of gun laws there are and how many kills per capita are in each
 GunLaws2<-GunLaws1[-c(1),]
 GunLaws3<-GunLaws2[-c(which(is.na(GunLaws2$KillCount))),] %>%
@@ -374,7 +376,6 @@ GunLaws3<-GunLaws2[-c(which(is.na(GunLaws2$KillCount))),] %>%
                    Population=sum(Pop2015),
                    Kill.pc=KillCount/Population*100000) %>%
   ungroup() %>%
-  
   # Give an arbitrary number to each unique pairing of gun laws
   mutate(Laws=c(1:9))
 
