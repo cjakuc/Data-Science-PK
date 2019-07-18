@@ -411,7 +411,7 @@ formattable(GunLaws3)
 
 ```
 - Q1: Which model best predicts the median household income of a police killing victim?
-- Q2: WRITE_QUESTION_HERE
+- Q2: How do gun laws relate to observations of police killings?
 - Q3: WRITE_QUESTION_HERE 
 - Q4: WRITE_QUESTION_HERE
 
@@ -421,6 +421,7 @@ GIVE WHAT 2 QUESTIONS YOU ATTEMPTED TO INVESTIGATE FURTHER IN COMPLETE SENTENCES
 
 SHOW AT LEAST 2 TABLES OR FIGURES BELOW THAT EXPLORE ANSWERS FOR THE QUESTIONS YOU ARE INVESTIGATING FURTHER.
 
+## Question 1: Which model best predicts the median household income of a police killing victim?
 
 ```{r}
 library(tidyverse)    #Essential Functions
@@ -604,6 +605,70 @@ table
 ```{r}
 table2=xtable(table,digits=4,align=c("l","l","l","l"))
 formattable(table2)
+```
+
+## Question 2: How do gun laws relate to observations of police killings?
+
+```{r}
+
+# Web scrape the gun laws table from
+URL.gun.scorecard = "https://lawcenter.giffords.org/scorecard2015/"
+gun.scorecard = URL.gun.scorecard %>%
+                      read_html() %>%
+                      html_table(fill=1) %>%
+                      .[[1]]
+
+# Removing the minus and plus signs from the grades
+gun.scorecard$`2015 Grade`[gun.scorecard$`2015 Grade` %in% "A-"]="A"
+gun.scorecard$`2015 Grade`[gun.scorecard$`2015 Grade` %in% "B+"]="B"
+gun.scorecard$`2015 Grade`[gun.scorecard$`2015 Grade` %in% "B-"]="B"
+gun.scorecard$`2015 Grade`[gun.scorecard$`2015 Grade` %in% "C-"]="C"
+gun.scorecard$`2015 Grade`[gun.scorecard$`2015 Grade` %in% "D-"]="D"
+
+# Adding the region
+gun.scorecard<-gun.scorecard %>%
+  left_join(region.data,by="State")
+ 
+
+gun.scorecard<-pops %>%
+  select("GEO.display-label","respop72015") %>%
+  rename(State="GEO.display-label",Pop2015=respop72015) %>%
+  left_join(gun.scorecard,by="State") %>% 
+  mutate(Pop2015=as.numeric(Pop2015)) %>%
+  left_join(state.kills,by=c("state"="State"))
+
+# Remove DC and Total US
+gun.scorecard1<-gun.scorecard[-c(which(is.na(gun.scorecard$`2015 Grade`))),] %>%
+  select(-`Death Rate Per 100k`,-`New Smart Gun Laws in 2015`)
+
+# Turning the gun law grades into factors to run a regression later
+gun.scorecard2<-gun.scorecard1[-c(which(is.na(gun.scorecard1$count))),]
+
+gun.scorecard3<-gun.scorecard2 %>%
+  mutate("2015 Grade"=factor(gun.scorecard2$`2015 Grade`)) %>%
+  mutate(KillCount=count) %>%
+  select(-count)
+
+# Find how many unique groups of gun laws there are and how many kills per capita are in each
+gun.scorecard4<-gun.scorecard3 %>%
+  group_by(`2015 Grade`) %>%
+  dplyr::summarize(count.gunlaws.ranks=n(),
+                   KillCount=sum(KillCount),
+                   Population=sum(Pop2015),
+                   "Kill.per.100,000"=KillCount/Population*100000) %>%
+  ungroup()
+ 
+ggplot(gun.scorecard4)+
+  geom_col(aes(x=`2015 Grade`,y=`Kill.per.100,000`),fill="red")+
+  xlab("Gun Control Law Rankings")+
+  ylab("Police Killings per 100,000 People")+
+  ggtitle("Police Killings per 100,000 People by Type of Gun Laws")+
+  theme_dark()+
+  theme_minimal()
+
+
+formattable(gun.scorecard4)
+
 ```
 
 #Summary
