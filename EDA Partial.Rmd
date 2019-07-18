@@ -515,7 +515,6 @@ table <- matrix(c(bias.func(actual=income_cv1_predict$med.tract.household.inc, p
 colnames(table) = c("Bias", "MAE", "RMSE")
 row.names(table) = c("Base Model", "Model 2", "Model 3", "Model 4", "Model 5")
 table <- as.table(table) 
-table
 ```
 
 ```{r}
