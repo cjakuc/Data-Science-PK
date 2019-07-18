@@ -1,0 +1,5 @@
+Ranks$`2015 Grade`[Ranks$`2015 Grade` %in% "A-"]="A"
+Ranks$`2015 Grade`[Ranks$`2015 Grade` %in% "B+"]="B"
+Ranks$`2015 Grade`[Ranks$`2015 Grade` %in% "B-"]="B"
+Ranks$`2015 Grade`[Ranks$`2015 Grade` %in% "C-"]="C"
+Ranks$`2015 Grade`[Ranks$`2015 Grade` %in% "D-"]="D"
