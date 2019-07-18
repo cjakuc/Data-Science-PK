@@ -322,17 +322,22 @@ ggplot(data=NoGun) +
 
 From the dataset it can be observed that most of the police killings occured in areas that had an unemployment above the national rate in  the second quarter of 2015 which was 5.4%. 400 of the 465 killings occured in areas that had unemployment rates above the national average at that time meaning that higher unemployment rates could have a significant impact on where police killings occur. Additionally 235 of the killings occured in areas that had an unemployment rate greater than 10%, further substantiating the theory that high unemployment and police killings are correlated.
 ```{r}
+
+#count of whether each killing occured in an area that has an unemployment rate higher than the national average of 3.6%
 PK1=PoliceKillings%>%
   mutate(higherthanavg=if_else(Unemployment_Rate>0.054,"Yes","No"))
-table(PK1$higherthanavg) #count of whether each killing occured in an area that has an unemployment rate higher than the national average of 3.6%
+table(PK1$higherthanavg) 
 
+#splitting up unemployment into ranges and then finding the count for each bin
 URranges1=cut2(PoliceKillings$Unemployment_Rate,c(0.02,0.04,0.06,0.08,0.1,0.12,0.14,0.16,0.18,0.2,0.22,0.24,0.26,0.28,0.3,0.32,0.34,0.36,0.38,0.4)) 
-summary(URranges1) #splitting up unemployment into ranges and then finding the count for each bin
+summary(URranges1) 
 
+
+#histogram of unemployment values
 ggplot(PoliceKillings,aes(x=Unemployment_Rate))+geom_histogram(breaks=c(0.02,
                       seq(0.05,0.5,0.05)),col="magenta")+geom_vline(xintercept = 0.054,linetype="dashed",color="yellow")
 
-#histogram of unemployment values
+
 
 ```
 
@@ -348,69 +353,6 @@ ggplot(PoliceKillings,aes(x=PoliceKillings$Armed))+geom_bar()+coord_flip()+xlab(
 
 ### New Questions Based Off Initial Investigation
 
-- Q1: How do gun laws relate to the proportional frequency of police killings?
-
-Gun laws taken from https://www.gunstocarry.com/gun-laws-state/#states
-
-```{r}
-
-# Import Gun Laws csv
-GunLaws<-read_csv("StateKills1.csv")
-
-# Adding full state names to gun law data
-GunLawsStates<-GunLaws %>%
-  left_join(region.data,by=c("State"="state")) %>%
-  rename(state=State.y) %>%
-  select(-State)
-
-# Joining state pop and gun law data
-gpops<-pops %>%
-  select("GEO.display-label","respop72015") %>%
-  rename(State="GEO.display-label",Pop2015=respop72015) %>%
-  left_join(GunLawsStates,by=c("State"="state")) %>%
-  mutate(Pop2015=as.numeric(Pop2015)) 
-  
-
-# Turning the gun law metrics into factors to run a regression later
-GunLaws1 <- gpops %>%
-  mutate("Firearm Registration"=factor(gpops$`Firearm Registration`)) %>%
-  mutate("Open Carry"=factor(gpops$`Open Carry`),
-         "Open Carry Permit"=factor(gpops$`Open Carry Permit`),
-         "Background Checks on Private Sales"=factor(gpops$`Background Checks on Private Sales`)) %>%
-  mutate("KillCount"=count) %>%
-  select(-count)
-  
-str(GunLaws1)
-
-# Find how many unique groups of gun laws there are and how many kills per capita are in each
-GunLaws2<-GunLaws1[-c(1),]
-GunLaws3<-GunLaws2[-c(which(is.na(GunLaws2$KillCount))),] %>%
-  group_by(`Firearm Registration`,
-           `Open Carry`,
-           `Open Carry Permit`,
-           `Background Checks on Private Sales`) %>%
-  dplyr::summarize(count.gunlaws.types=n(),
-                   KillCount=sum(KillCount),
-                   Population=sum(Pop2015),
-                   Kill.pc=KillCount/Population*100000) %>%
-  ungroup() %>%
-  # Give an arbitrary number to each unique pairing of gun laws
-  mutate(Laws=c(1:9))
-
-# Make a graph of kills per capita by gun law group
-ggplot(GunLaws3)+
-  geom_col(aes(x=Laws,y=Kill.pc),fill="red")+
-  xlab("Gun Control Law Groupings")+
-  scale_x_discrete(limits=c(1:9))+
-  ylab("Police Killings per 100,000 People")+
-  ggtitle("Police Killings per 100,000 People by Type of Gun Laws")+
-  theme_dark()+
-  theme_minimal()
-  
-formattable(GunLaws3)
-
-
-```
 - Q1: Which model best predicts the median household income of a police killing victim?
 - Q2: How do gun laws relate to observations of police killings?
 - Q3: WRITE_QUESTION_HERE 
