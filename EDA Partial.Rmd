@@ -642,6 +642,137 @@ four = three +
 four
 ```
 
+## Question 3: How do frequencies of police killings by cause of death proportionally relate to region/gun law groupings?
+
+```{r}
+
+# Plotting proportion of causes of police killings in each region
+Causes <- PoliceKillings %>% 
+  group_by(Cause_Of_Death,region) %>%
+  dplyr::summarize(count=n()) %>%
+  ungroup() %>%
+  mutate(prop=count/sum(count)) 
+
+Causes1<-Causes %>%
+  left_join(region.kills,by="region") %>%
+  mutate(Prop.cause.region=count.x/count.y)
+
+NoGun1= filter(Causes1, Cause_Of_Death != "Gunshot", Cause_Of_Death != "Unknown")
+ggplot(data=NoGun1) +
+  geom_col(aes(x=Cause_Of_Death,y=Prop.cause.region)) + 
+  xlab("Cause of Death") + ylab("Proportional of Deaths") + 
+  theme_light()+
+  facet_wrap(NoGun1$region~.)+
+  theme(axis.text.x=element_text(angle=45,hjust=1))
+
+## Adding gun law ranking
+
+# Count police killings by gun law rankings
+laws.kills<-PoliceKillings %>%
+  left_join(gun.scorecard,by="region") %>%
+  select(`2015 Grade`,Cause_Of_Death) %>%
+  mutate(`2015 Grade`=factor(`2015 Grade`)) %>%
+  group_by(`2015 Grade`) %>%
+  dplyr::summarize(Kills.By.Laws=n()) %>%
+  ungroup() 
+  
+
+causes.laws<-PoliceKillings %>%
+  select(Cause_Of_Death,region) %>%
+  left_join(gun.scorecard,by="region") %>%
+  select(Cause_Of_Death,`2015 Grade`) %>%
+  group_by(Cause_Of_Death,`2015 Grade`) %>%
+  dplyr::summarize(count=n()) %>%
+  ungroup() %>%
+  left_join(laws.kills,by="2015 Grade") %>%
+  mutate(cause.prop.by.laws=count/Kills.By.Laws) %>%
+  group_by(Cause_Of_Death,`2015 Grade`)
+
+# Figure of proportional deaths by cause and gun laws
+ggplot(data=causes.laws) +
+  geom_col(aes(x=Cause_Of_Death,y=cause.prop.by.laws)) + 
+  xlab("Cause of Death") + ylab("Proportion of Deaths") + 
+  theme_light()+
+  facet_wrap(causes.laws$`2015 Grade`~.)+
+  theme(axis.text.x=element_text(angle=45,hjust=1))
+
+
+gun.scorecard.causes<-pops %>%
+  select("GEO.display-label","respop72015") %>%
+  rename(State="GEO.display-label",Pop2015=respop72015) %>%
+  left_join(gun.scorecard,by="State") %>% 
+  mutate(Pop2015=as.numeric(Pop2015)) %>%
+  left_join(state.kills,by=c("state"="State"))
+
+  # Remove DC and Total US
+gun.scorecard2<-gun.scorecard1[-c(which(is.na(gun.scorecard1$`2015 Grade`))),] %>%
+  select(-`Death Rate Per 100k`,-`New Smart Gun Laws in 2015`)
+
+# Turning the gun law grades into factors to run a regression later
+gun.scorecard3<-gun.scorecard2[-c(which(is.na(gun.scorecard2$count))),]
+
+gun.scorecard4<-gun.scorecard3 %>%
+  mutate("2015 Grade"=factor(gun.scorecard3$`2015 Grade`)) %>%
+  mutate(KillCount=count) %>%
+  select(-count)
+
+# Find how many unique groups of gun laws there are and how many kills per capita are in each
+gun.scorecard5<-gun.scorecard4 %>%
+  group_by(`2015 Grade`) %>%
+  dplyr::summarize(count.gunlaws.ranks=n(),
+                   KillCount=sum(KillCount),
+                   Population=sum(Pop2015),
+                   "Kill.per.100,000"=KillCount/Population*100000) %>%
+  ungroup()
+
+
+
+
+# Plotting proportion of people armed/unarmed in police killings in each region
+Armed <- PoliceKillings %>% 
+  group_by(Armed,region) %>%
+  dplyr::summarize(count=n()) %>%
+  ungroup() %>%
+  mutate(prop=count/sum(count)) 
+
+Armed1<-Armed %>%
+  left_join(region.kills,by="region") %>%
+  mutate(Prop.armed.region=count.x/count.y)
+
+Armed2<-filter(Armed1,Armed != "Unknown", Armed != "Disputed")
+ggplot(data=Armed2) +
+  geom_col(aes(x=Armed,y=Prop.armed.region)) + 
+  xlab("Armed") + ylab("Proportional of Deaths") + 
+  theme_light()+
+  facet_wrap(region~.~.)+
+  theme(axis.text.x=element_text(angle=45,hjust=1))
+
+
+## Adding gun law rankings
+
+Armed.laws<-PoliceKillings %>%
+  select(Armed,region) %>%
+  left_join(gun.scorecard,by="region") %>%
+  select(Armed,`2015 Grade`) %>%
+  group_by(Armed,`2015 Grade`) %>%
+  dplyr::summarize(count=n()) %>%
+  ungroup() %>%
+  left_join(laws.kills,by="2015 Grade") %>%
+  mutate(armed.prop.by.laws=count/Kills.By.Laws) %>%
+  group_by(Armed,`2015 Grade`)
+
+# Figure of proportional deaths by armed status and gun laws
+Armed.laws= filter(Armed.laws, Armed != "Unknown", Armed != "Disputed")
+ggplot(data=Armed.laws) +
+  geom_col(aes(x=Armed,y=armed.prop.by.laws)) + 
+  xlab("Armed Status") + ylab("Proportion of Deaths") + 
+  theme_light()+
+  facet_wrap(Armed.laws$`2015 Grade`~.)+
+  theme(axis.text.x=element_text(angle=45,hjust=1))
+
+
+```
+
 #Summary
 
 GIVE A 2 PARAGRAPH SUMMARY. 
