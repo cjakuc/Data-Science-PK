@@ -443,7 +443,6 @@ income_cv1 = PoliceKillings %>%
 ```
 
 ```{r}
-
 firstmod = lm(med.tract.household.inc~Population,data=income_cv1)
 tidy(firstmod)
 
@@ -481,9 +480,6 @@ RMSE.func=function(actual,predict){
   rmse=sqrt(mse)
   return(rmse)
 }
-bias.func(actual=income_cv1_predict$med.tract.household.inc, predict=income_cv1_predict$.fitted)
-mae.func(actual=income_cv1_predict$med.tract.household.inc, predict=income_cv1_predict$.fitted)
-RMSE.func(actual=income_cv1_predict$med.tract.household.inc, predict=income_cv1_predict$.fitted)
 ```
 
 
@@ -505,13 +501,6 @@ income_cv2_predict = income_cv2_third %>%
   mutate(predict = map2(test,tr.model, ~augment(.y,newdata=.x))) %>% 
   select(predict) %>% 
   unnest()
-
-head(income_cv2_predict)
-
-bias.func(actual=income_cv2_predict$med.tract.household.inc, predict=income_cv2_predict$.fitted)
-mae.func(actual=income_cv2_predict$med.tract.household.inc, predict=income_cv2_predict$.fitted)
-RMSE.func(actual=income_cv2_predict$med.tract.household.inc, predict=income_cv2_predict$.fitted)
-
 ```
 
 ```{r}
@@ -533,13 +522,8 @@ income_cv4_predict = income_cv4_third %>%
   mutate(predict = map2(test,tr.model, ~augment(.y,newdata=.x))) %>% 
   select(predict) %>% 
   unnest()
-
-head(income_cv4_predict)
-
-bias.func(actual=income_cv4_predict$med.tract.household.inc, predict=income_cv4_predict$.fitted)
-mae.func(actual=income_cv4_predict$med.tract.household.inc, predict=income_cv4_predict$.fitted)
-RMSE.func(actual=income_cv4_predict$med.tract.household.inc, predict=income_cv4_predict$.fitted)
 ```
+
 ```{r}
 fivemod = lm(med.tract.household.inc~Population + Poverty_Rate + Age + Proportion_Attended_College, data=income_cv1)
 tidy(fivemod)
@@ -559,12 +543,6 @@ income_cv5_predict = income_cv5_third %>%
   mutate(predict = map2(test,tr.model, ~augment(.y,newdata=.x))) %>% 
   select(predict) %>% 
   unnest()
-
-head(income_cv5_predict)
-
-bias.func(actual=income_cv5_predict$med.tract.household.inc, predict=income_cv5_predict$.fitted)
-mae.func(actual=income_cv5_predict$med.tract.household.inc, predict=income_cv5_predict$.fitted)
-RMSE.func(actual=income_cv5_predict$med.tract.household.inc, predict=income_cv5_predict$.fitted)
 ```
 
 ```{r}
@@ -587,12 +565,6 @@ income_cv6_predict = income_cv6_third %>%
   mutate(predict = map2(test,tr.model, ~augment(.y,newdata=.x))) %>% 
   select(predict) %>% 
   unnest()
-
-head(income_cv6_predict)
-
-bias.func(actual=income_cv6_predict$med.tract.household.inc, predict=income_cv6_predict$.fitted)
-mae.func(actual=income_cv6_predict$med.tract.household.inc, predict=income_cv6_predict$.fitted)
-RMSE.func(actual=income_cv6_predict$med.tract.household.inc, predict=income_cv6_predict$.fitted)
 ```
 
 ```{r, results="asis"}
