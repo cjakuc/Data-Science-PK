@@ -646,6 +646,38 @@ four
 
 ```{r}
 
+
+
+gun.scorecard.causes<-pops %>%
+  select("GEO.display-label") %>%
+  rename(State="GEO.display-label") %>%
+  left_join(gun.scorecard,by="State") %>% 
+  mutate(Pop2015=as.numeric(Pop2015)) %>%
+  left_join(state.kills,by=c("state"="State"))
+
+  # Remove DC and Total US
+gun.scorecard2<-gun.scorecard1[-c(which(is.na(gun.scorecard1$`2015 Grade`))),]
+
+
+# Turning the gun law grades into factors to run a regression later
+gun.scorecard3<-gun.scorecard2[-c(which(is.na(gun.scorecard2$count))),]
+
+gun.scorecard4<-gun.scorecard3 %>%
+  mutate("2015 Grade"=factor(gun.scorecard3$`2015 Grade`)) %>%
+  mutate(KillCount=count) %>%
+  select(-count)
+
+# Find how many unique groups of gun laws there are and how many kills per capita are in each
+gun.scorecard5<-gun.scorecard4 %>%
+  group_by(`2015 Grade`) %>%
+  dplyr::summarize(count.gunlaws.ranks=n(),
+                   KillCount=sum(KillCount),
+                   Population=sum(Pop2015),
+                   "Kill.per.100,000"=KillCount/Population*100000) %>%
+  ungroup()
+
+
+
 # Plotting proportion of causes of police killings in each region
 Causes <- PoliceKillings %>% 
   group_by(Cause_Of_Death,region) %>%
@@ -695,38 +727,6 @@ ggplot(data=causes.laws) +
   theme_light()+
   facet_wrap(causes.laws$`2015 Grade`~.)+
   theme(axis.text.x=element_text(angle=45,hjust=1))
-
-
-gun.scorecard.causes<-pops %>%
-  select("GEO.display-label","respop72015") %>%
-  rename(State="GEO.display-label",Pop2015=respop72015) %>%
-  left_join(gun.scorecard,by="State") %>% 
-  mutate(Pop2015=as.numeric(Pop2015)) %>%
-  left_join(state.kills,by=c("state"="State"))
-
-  # Remove DC and Total US
-gun.scorecard2<-gun.scorecard1[-c(which(is.na(gun.scorecard1$`2015 Grade`))),] %>%
-  select(-`Death Rate Per 100k`,-`New Smart Gun Laws in 2015`)
-
-# Turning the gun law grades into factors to run a regression later
-gun.scorecard3<-gun.scorecard2[-c(which(is.na(gun.scorecard2$count))),]
-
-gun.scorecard4<-gun.scorecard3 %>%
-  mutate("2015 Grade"=factor(gun.scorecard3$`2015 Grade`)) %>%
-  mutate(KillCount=count) %>%
-  select(-count)
-
-# Find how many unique groups of gun laws there are and how many kills per capita are in each
-gun.scorecard5<-gun.scorecard4 %>%
-  group_by(`2015 Grade`) %>%
-  dplyr::summarize(count.gunlaws.ranks=n(),
-                   KillCount=sum(KillCount),
-                   Population=sum(Pop2015),
-                   "Kill.per.100,000"=KillCount/Population*100000) %>%
-  ungroup()
-
-
-
 
 # Plotting proportion of people armed/unarmed in police killings in each region
 Armed <- PoliceKillings %>% 
