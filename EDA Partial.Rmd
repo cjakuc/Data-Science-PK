@@ -132,12 +132,28 @@ Races <- PoliceKillings %>%
 # Remove the row for unknown races
 Races<-Races[-c(which(Races$Race=="Unknown")),]
 
+# Plotting proportion of total police killings by race and religion
 ggplot(Races) +
   geom_col(aes(x=Race,y=prop))+
   facet_wrap(region~.)+
   ylab("Proportion of total police killings")+
   theme(axis.text.x=element_text(angle=45,hjust=1))+
   ggtitle("Proportion of Total Police Killings by Race and Region")
+
+# Plotting proportion of police killings in each region by race
+Races1<-Races %>%
+  left_join(region.kills,by="region") %>%
+  mutate(Prop.race.region=count.x/count.y)
+
+
+
+ggplot(Races1)+
+  geom_col(aes(x=Race,y=Prop.race.region))+
+  facet_wrap(region~.)+
+  ylab("Proportion of police killings by region")+
+  theme(axis.text.x=element_text(angle=45,hjust=1))+
+  ggtitle("Proportion of Police Killings in Each Region by Race")
+
 ```
 
 #Interpreter: Chris Jakuc
