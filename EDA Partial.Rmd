@@ -14,6 +14,7 @@ library(dplyr)
 library(xtable)
 library(forcats)
 library(formattable)
+library(rvest)
 
 
 # Import Data Below
@@ -601,6 +602,7 @@ colnames(table) = c("Bias", "MAE", "RMSE")
 row.names(table) = c("Base Model", "Model 2", "Model 3", "Model 4", "Model 5")
 table <- as.table(table) 
 table
+```
 
 ```{r}
 table2=xtable(table,digits=4,align=c("l","l","l","l"))
