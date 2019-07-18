@@ -342,6 +342,7 @@ ggplot(PoliceKillings,aes(x=Unemployment_Rate))+geom_histogram(breaks=c(0.00,
 ```
 
 ###Q2: Were more armed victims killed than unarmed victims?
+From the data it can be observed that 357 of the 465 people killed by the police in the first half of 2015 were armed, while 102 were unarmed, and for 7 of the individuals it is unknown whether they were armed. From this breakdown it seems likely that being armed is a major factor in whether someone is killed by the police as there were more than three times the number of armed individuals as unarmed in the dataset.
 
 ```{r}
 #Creating a table of killings by category of count
