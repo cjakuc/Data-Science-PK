@@ -706,7 +706,8 @@ ggplot(data=NoGun1) +
   xlab("Cause of Death") + ylab("Proportional of Deaths") + 
   theme_light()+
   facet_wrap(NoGun1$region~.)+
-  theme(axis.text.x=element_text(angle=45,hjust=1))
+  theme(axis.text.x=element_text(angle=45,hjust=1))+
+  ggtitle("Proportion of Police Killings in Each Region by Cause of Death")
 
 ## Adding gun law ranking
 
@@ -737,7 +738,8 @@ ggplot(data=causes.laws) +
   xlab("Cause of Death") + ylab("Proportion of Deaths") + 
   theme_light()+
   facet_wrap(causes.laws$`2015 Grade`~.)+
-  theme(axis.text.x=element_text(angle=45,hjust=1))
+  theme(axis.text.x=element_text(angle=45,hjust=1))+
+  ggtitle("Proportion of Police Killings in Each Gun Law Grade")
 
 
 ```
