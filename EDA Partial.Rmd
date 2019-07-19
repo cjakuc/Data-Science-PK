@@ -140,7 +140,7 @@ ggplot(Races) +
   facet_wrap(region~.)+
   ylab("Proportion of total police killings")+
   theme(axis.text.x=element_text(angle=45,hjust=1))+
-  ggtitle("Proportion of Total Police Killings by Race and Region")
+  ggtitle("National Proportion of Police Killings by Race and Region")
 
 # Plotting proportion of police killings in each region by race
 Races1<-Races %>%
@@ -154,7 +154,7 @@ ggplot(Races1)+
   facet_wrap(region~.)+
   ylab("Proportion of police killings by region")+
   theme(axis.text.x=element_text(angle=45,hjust=1))+
-  ggtitle("Proportion of Police Killings in Each Region by Race")
+  ggtitle("Regional Proportion of Police Killings by Race")
 
 ```
 
