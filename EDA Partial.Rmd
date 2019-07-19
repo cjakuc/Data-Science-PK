@@ -241,7 +241,8 @@ PD =
 ggplot(PD) + 
   geom_bar(mapping = aes(killed)) + 
   theme_light() + 
-  ggtitle("Police Violence in 2015") + xlab("Status of Victims") + ylab("Count")
+  ggtitle("Police Violence in 2015") + xlab("Status of Victims") + ylab("Count")+
+  scale_x_discrete(limits=c("Alive","Dead"))
 ```
 
 This question is unable to be answered with the current dataset. Given that everyone is killed, we are unable to answer this question using a model. 
