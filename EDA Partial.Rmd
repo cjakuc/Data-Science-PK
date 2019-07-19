@@ -354,7 +354,12 @@ From the data it can be observed that 357 of the 465 people killed by the police
 
 Armed1=table(PoliceKillings$Armed)
 print(Armed1)
-ggplot(PoliceKillings,aes(x=PoliceKillings$Armed))+geom_bar()+coord_flip()+xlab("Armed vs Unarmed")
+ggplot(PoliceKillings,aes(x=PoliceKillings$Armed))+
+  geom_bar()+
+  coord_flip()+
+  xlab("Armed vs Unarmed")+
+  ylab("Frequency of Killings")+
+  ggtitle("Frequency of Police Killings by Armed Status")
 ```
 
 # Follow up questions
