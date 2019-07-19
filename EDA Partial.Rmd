@@ -647,7 +647,7 @@ three = two + scale_fill_gradient(low = "white", high = "#CB454A")
 
 
 four = three +
-  geom_point(data = labs2, aes(x = long, y = lat)) + 
+  geom_point(data = labs2, aes(x = long, y = lat), alpha = 0.4, size = 0.5) + 
   ggtitle("Police Killings in States with Ranked Gun Laws")
 
 four
