@@ -593,9 +593,12 @@ ggplot(gun.scorecard4)+
   ggtitle("Police Killings per 100,000 People by Type of Gun Laws")+
   theme_dark()+
   theme_minimal()
+  
+  
+gun.table<-gun.scorecard4 %>%
+  rename("Count of Gun Law Ranks"=count.gunlaws.ranks,"Kill Count"=KillCount,"Kill Rate per 100,000 People"=`Kill.per.100,000`)
 
-
-formattable(gun.scorecard4)
+formattable(gun.table)
 
 ```
 
