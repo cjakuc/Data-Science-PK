@@ -765,7 +765,8 @@ ggplot(data=Armed2) +
   xlab("Armed") + ylab("Proportional of Deaths") + 
   theme_light()+
   facet_wrap(region~.~.)+
-  theme(axis.text.x=element_text(angle=45,hjust=1))
+  theme(axis.text.x=element_text(angle=45,hjust=1))+
+  ggtitle("Proportion of Police Killings in Each Region by Armed Status")
 
 
 ## Adding gun law rankings
@@ -788,7 +789,8 @@ ggplot(data=Armed.laws) +
   xlab("Armed Status") + ylab("Proportion of Deaths") + 
   theme_light()+
   facet_wrap(Armed.laws$`2015 Grade`~.)+
-  theme(axis.text.x=element_text(angle=45,hjust=1))
+  theme(axis.text.x=element_text(angle=45,hjust=1))+
+  ggtitle("Proportion of Police Killings in Each Gun Law Grade")
 ```
 
 #Summary
