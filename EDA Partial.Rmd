@@ -314,7 +314,9 @@ NoGun= filter(PoliceKillings, Cause_Of_Death != "Gunshot")
 ggplot(data=NoGun) +
   geom_bar(aes(x=Cause_Of_Death), color="black",fill=c("red","blue","darkgreen","purple"),size=2) + 
   xlab("Cause of Death") + ylab("Number of Deaths") + 
-  theme_light()
+  theme_light()+
+  ggtitle("Fatality Frequencies Among Uncommon Police Weapons")
+
 ```
 
 #Deliverer: Avinash Gandhi
