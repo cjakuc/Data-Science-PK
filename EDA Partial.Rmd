@@ -358,8 +358,8 @@ ggplot(PoliceKillings,aes(x=PoliceKillings$Armed))+geom_bar()+coord_flip()+xlab(
 
 - Q1: Which model best predicts the median household income of a police killing victim?
 - Q2: How do gun laws relate to observations of police killings?
-- Q3: WRITE_QUESTION_HERE 
-- Q4: WRITE_QUESTION_HERE
+- Q3: How do frequencies of police killings by cause of death proportionally relate to region/gun law groupings? 
+- Q4: How do frequencies of police killings by armed status proportionally relate to region/gun law groupings?
 
 ### Investigation of Follow-up Questions
 
@@ -728,6 +728,13 @@ ggplot(data=causes.laws) +
   facet_wrap(causes.laws$`2015 Grade`~.)+
   theme(axis.text.x=element_text(angle=45,hjust=1))
 
+
+```
+
+## Question 4: How do frequencies of police killings by armed status proportionally relate to region/gun law groupings?
+
+
+```{r}
 # Plotting proportion of people armed/unarmed in police killings in each region
 Armed <- PoliceKillings %>% 
   group_by(Armed,region) %>%
@@ -769,8 +776,6 @@ ggplot(data=Armed.laws) +
   theme_light()+
   facet_wrap(Armed.laws$`2015 Grade`~.)+
   theme(axis.text.x=element_text(angle=45,hjust=1))
-
-
 ```
 
 #Summary
