@@ -27,7 +27,7 @@ PoliceKillings$region[which(PoliceKillings$State=="DC")]<-"South"
 #Creator: Katharine Kurz
 
 
-###Q1: What regions of the country have the highest rates of police killings?
+###Q1: Which regions of the country have the highest rates of police killings?
 
 ```{r}
 # Adding populations by state and adding populations by region
@@ -210,7 +210,7 @@ ggplot(Ages1)+
   theme_minimal()
 ```
 
-###Q2: What role does income a factor in the frequency of police killings by region/state?
+###Q2: What role does income play in the frequency of police killings by region/state?
 
 
 ```{r}
