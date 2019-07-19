@@ -373,7 +373,7 @@ ggplot(PoliceKillings,aes(x=PoliceKillings$Armed))+
 
 ### Investigation of Follow-up Questions
 
-GIVE WHAT 2 QUESTIONS YOU ATTEMPTED TO INVESTIGATE FURTHER IN COMPLETE SENTENCES (*Example:* Our group decided to investigate Q2 and Q4 in further detail.)
+We explored answers for each of these additional questions but focused mainly on exploring questions 1 and 2. 
 
 SHOW AT LEAST 2 TABLES OR FIGURES BELOW THAT EXPLORE ANSWERS FOR THE QUESTIONS YOU ARE INVESTIGATING FURTHER.
 
