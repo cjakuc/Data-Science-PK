@@ -190,15 +190,15 @@ Ages1 <- Ages %>%
 # Remove the row for unknown age
 Ages1<-Ages1[-c(which(Ages1$Age_Bin=="Unknown")),]
 ```
-group ranges -
-16-19 - Teenager
-20-29 - Twenties
-30-39 - Thirties
-40-49 - Forties
-50 -59 - Fifties
-60 - 69 - Sixties
-70-79 - Seventies
-80-89 - Eighties
+Group Ranges -
+Teenager - 16-19
+Twenties - 20-29 
+Thirties - 30-39
+Forties - 40-49 
+Fifties - 50-59 
+Sixties - 60-69 
+Seventies - 70-79
+Eighties - 80-89 
 Unknown - 
 
 ```{r}
