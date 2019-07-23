@@ -1,0 +1,820 @@
+---
+title: "Exploratory Data Analysis"
+author: "STOR 320 Group 4"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(Hmisc)
+library(modelr)
+library(dplyr)
+library(xtable)
+library(forcats)
+library(formattable)
+library(rvest)
+
+
+# Import Data Below
+PoliceKillings<-read_csv("PKcleanP2.csv")
+
+# Add DC to the South region
+PoliceKillings$region[which(PoliceKillings$State=="DC")]<-"South"
+```
+
+#Creator: Katharine Kurz
+
+
+###Q1: Which regions of the country have the highest rates of police killings?
+
+```{r}
+# Adding populations by state and adding populations by region
+populations<-read_csv("StatePops.csv")
+pops<-populations[-1,3:11]
+
+
+# Import states by region
+region.data<-read_csv("StatesbyCensusRegion.csv")
+
+
+# Joining state pop and region data
+pops1<-pops %>%
+  select("GEO.display-label","respop72015") %>%
+  rename(State="GEO.display-label",Pop2015=respop72015) %>%
+  left_join(region.data,by="State") %>%
+  mutate(Pop2015=as.numeric(Pop2015)) %>%
+  group_by(region) %>%
+  mutate(PopByRegion=sum(Pop2015)) %>%
+  select(PopByRegion,region) %>%
+  ungroup() %>%
+  mutate(Pop.prop=PopByRegion/PopByRegion[1])
+
+# Create a tibble of uniqe regions, pops, and prop pops
+pops2<- tibble(PopByRegion=unique(pops1$PopByRegion),Region=unique(pops1$region),Pop.prop=unique(pops1$Pop.prop))
+
+# Converting region variable to a factor
+regions<-pops2 %>%
+  mutate(Region=as_factor(Region))
+levels(regions$Region)
+
+# Remove the row for US total police killings
+regions<-regions[-c(is.na(regions$Region)),]
+
+```
+
+```{r}
+# Print out a plot of proportion of population in each region
+ggplot(regions) +
+  geom_col(aes(x=fct_explicit_na(Region,na_level = "US Total"),y=Pop.prop))+
+  xlab("Region")+
+  ylab("Proportion of Population")+
+  ggtitle("Proportion of Total Population by Region")+
+  theme_minimal()
+```
+
+```{r}
+# Count how many police killings are in each state
+state.kills<-PoliceKillings %>%
+  select(State) %>%
+  mutate(State=as_factor(State)) %>%
+  group_by(State) %>%
+  dplyr::summarize(count=n())
+
+# Count how many police killings are in each region
+region.kills<-PoliceKillings %>%
+  select(region) %>%
+  mutate(region=as_factor(region)) %>%
+  group_by(region) %>%
+  dplyr::summarize(count=n())
+
+```
+
+```{r}
+# Create population state data frame
+states<- pops %>%
+  select("GEO.display-label","respop72015") %>%
+  rename(State="GEO.display-label",Pop2015=respop72015) %>%
+  mutate(Pop2015=as.numeric(Pop2015)) %>%
+  left_join(region.data,by="State") %>%
+  select(-region)
+
+# Join police killings by state with population state data and create a variable for kills per 100,000 per state
+states1<-states[-c(1),] %>%
+  select(Pop2015,State,state) %>%
+  right_join(state.kills,by=c("state"="State")) %>%
+  mutate(kill.pc.state=count/Pop2015*100000)
+
+# Join police killings by region with population regions data and create a variable for kills per 100,000 per region
+regions1<-regions %>%
+  select(PopByRegion,Region) %>%
+  right_join(region.kills,by=c("Region"="region")) %>%
+  mutate(kill.pc.region=count/PopByRegion*100000)
+
+```
+
+```{r}
+# Create a graph for police killing rates per 100,000 people by region
+ggplot(regions1)+
+  geom_col(aes(x=Region,y=kill.pc.region))+
+  ylab("Kills Per 100,000 People")+
+  ggtitle("Kills per 100,000 People by Region")
+```
+
+###Q2: Which races/ethnicities are frequently subjected to police violence?
+
+```{r}
+Races <- PoliceKillings %>% 
+  group_by(Race,region) %>%
+  dplyr::summarize(count=n()) %>%
+  ungroup() %>%
+  mutate(prop=count/sum(count)) 
+
+# Remove the row for unknown races
+Races<-Races[-c(which(Races$Race=="Unknown")),]
+
+# Plotting proportion of total police killings by race and religion
+ggplot(Races) +
+  geom_col(aes(x=Race,y=prop))+
+  facet_wrap(region~.)+
+  ylab("Proportion of total police killings")+
+  theme(axis.text.x=element_text(angle=45,hjust=1))+
+  ggtitle("National Proportion of Police Killings by Race and Region")
+
+# Plotting proportion of police killings in each region by race
+Races1<-Races %>%
+  left_join(region.kills,by="region") %>%
+  mutate(Prop.race.region=count.x/count.y)
+
+
+
+ggplot(Races1)+
+  geom_col(aes(x=Race,y=Prop.race.region))+
+  facet_wrap(region~.)+
+  ylab("Proportion of police killings by region")+
+  theme(axis.text.x=element_text(angle=45,hjust=1))+
+  ggtitle("Regional Proportion of Police Killings by Race")
+
+```
+
+#Interpreter: Chris Jakuc
+
+###Q1: Which age groups are more likely to be affected by police killings?
+
+```{r}
+Ages <- PoliceKillings %>% 
+  mutate(Age = as.factor(Age)) %>%
+  group_by(Age)
+levels(Ages$Age)
+```
+
+```{r}
+Ages1 <- Ages %>%
+  mutate(Age_Bin=fct_collapse(Age,
+                           Teenager = levels(Age)[c(1:4)],
+                           Twenties = levels(Age)[c(5:14)],
+                           Thirties = levels(Age)[c(15:25)],
+                           Forties = levels(Age)[c(26:34)],
+                           Fifties = levels(Age)[c(35:44)],
+                           Sixties = levels(Age)[c(45:52)],
+                           Seventies =  levels(Age)[c(53:58)],
+                           Eighties = levels(Age)[c(59:60)],
+                           Unknown = levels(Age)[c(61)]
+                           )) %>%
+           group_by(Age_Bin) %>%
+           dplyr::summarize(n=n()) %>%
+           ungroup() %>%
+           mutate(prop=n/sum(n))
+           
+# Remove the row for unknown age
+Ages1<-Ages1[-c(which(Ages1$Age_Bin=="Unknown")),]
+```
+Group Ranges -
+Teenager - 16-19
+Twenties - 20-29 
+Thirties - 30-39
+Forties - 40-49 
+Fifties - 50-59 
+Sixties - 60-69 
+Seventies - 70-79
+Eighties - 80-89 
+Unknown - 
+
+```{r}
+ggplot(Ages1)+
+  geom_col(aes(x=Age_Bin,y=prop))+
+  xlab("Age Group")+
+  ylab("Proportion of Total Killings")+
+  ggtitle("Proportion of Total Killings by Age Group")+
+  theme_minimal()
+```
+
+###Q2: What role does income play in the frequency of police killings by region/state?
+
+
+```{r}
+mean.inc<-mean(PoliceKillings$med.tract.household.inc)
+
+ggplot(PoliceKillings)+
+  geom_histogram(aes(x=med.tract.household.inc),bins=20,fill='deepskyblue1')+
+  geom_vline(xintercept=mean.inc,linetype="dashed",color="white")+
+  facet_wrap(region~.)+
+  theme_dark()+
+  xlab("Median Household Income")+
+  ylab("Number of Deaths")+
+  theme(axis.text.x=element_text(angle=45,hjust=1))+
+  scale_x_continuous(breaks=c(25000,50000,75000,100000))
+```
+
+#Orator: Harrison Cho
+
+###Q1: What factors combined are most influential in predicting police killings in a city?
+
+```{r}
+PD = 
+  PoliceKillings %>% 
+  mutate( 
+    killed = ifelse("age">16, 1, 0), 
+    killed = factor(killed, levels=c("0","1"), labels = c("Alive","Dead")))
+  
+ggplot(PD) + 
+  geom_bar(mapping = aes(killed)) + 
+  theme_light() + 
+  ggtitle("Police Violence in 2015") + xlab("Status of Victims") + ylab("Count")+
+  scale_x_discrete(limits=c("Alive","Dead"))
+```
+
+This question is unable to be answered with the current dataset. Given that everyone is killed, we are unable to answer this question using a model. 
+
+###Q2: Are law enforcement agencies that hold the highest killing rates primarily influenced by population size or other variables? 
+
+```{r}
+Agencies = 
+  PoliceKillings %>% 
+  arrange(Law_Enforcement_Agency) %>% 
+  group_by(Law_Enforcement_Agency) %>%
+  dplyr::summarize(n = n()) %>%
+  mutate( freq = n / sum(n))
+
+Agencies2 = inner_join(Agencies, PoliceKillings) %>%
+  select("Law_Enforcement_Agency","freq", -("n"), -("Name"), "Age":"region") 
+
+```
+
+```{r}
+Agencies = 
+  PoliceKillings %>% 
+  group_by(Law_Enforcement_Agency) %>%
+  dplyr::summarize(n = n()) %>%
+  mutate( freq = n / sum(n))
+
+Agencies2 = inner_join(Agencies, PoliceKillings) %>%
+  select("Law_Enforcement_Agency","freq", -("n"), -("Name"), "Age":"region") 
+
+Agencies3 = 
+  Agencies2 %>% 
+  group_by(Law_Enforcement_Agency) %>% 
+  mutate(Population = median(Population),
+         Proportion_White = median(Proportion_White), 
+         Proportion_Black = median(Proportion_Black), 
+         Proportion_Hispanic = median(Proportion_Hispanic), 
+         med.tract.personal.inc = median(med.tract.personal.inc),
+         med.tract.household.inc = median(med.tract.household.inc), 
+         med.county.household.inc = median(med.county.household.inc), 
+         Poverty_Rate = median(Poverty_Rate),
+         Unemployment_Rate = median(Unemployment_Rate),
+         Proportion_Attended_College = median(Proportion_Attended_College), 
+         inc.quint.nat = median(inc.quint.nat),
+         tractvcount.percentile = median(tractvcount.percentile),
+         Age = as.numeric(Age),
+         Age = median(Age))
+
+ggplot(data = Agencies3, mapping = aes(x = Population, y=freq, color = region)) + geom_point() + ylab("Median Population") + ylab("Frequency of Fatality") + ggtitle("Frequencies of Fatal Police Shootings Grouped by Department")
+```
+
+
+#Orator: Mohammad Aamin
+
+###Q1: On a national level, does a relationship exist between the proportion of those who graduated college and the number of police killings?
+
+```{r}
+ggplot(data=PoliceKillings) + 
+  geom_histogram(mapping=aes(x=Proportion_Attended_College),bins=15,fill="deepskyblue1")+
+  labs(x="Proportion that Attended College",y="Number of Deaths",title="College Education vs. Police Killings") + theme_dark()
+```
+
+###Q2: Which uncommon police weapons result in fatalities at a higher frequency?
+
+```{r}
+unique(PoliceKillings$Cause_Of_Death)
+ggplot(data=PoliceKillings) +
+  geom_bar(aes(x=Cause_Of_Death))
+NoGun= filter(PoliceKillings, Cause_Of_Death != "Gunshot")
+ggplot(data=NoGun) +
+  geom_bar(aes(x=Cause_Of_Death), color="black",fill=c("red","blue","darkgreen","purple"),size=2) + 
+  xlab("Cause of Death") + ylab("Number of Deaths") + 
+  theme_light()+
+  ggtitle("Fatality Frequencies Among Uncommon Police Weapons")
+
+```
+
+#Deliverer: Avinash Gandhi
+
+###Q1: Do areas with higher unemployment rates tend to have higher rates of police killings?
+
+From the dataset it can be observed that most of the police killings occured in areas that had an unemployment above the national rate in  the second quarter of 2015 which was 5.4%. 400 of the 465 killings occured in areas that had unemployment rates above the national average at that time meaning that higher unemployment rates could have a significant impact on where police killings occur. Additionally 235 of the killings occured in areas that had an unemployment rate greater than 10%, further substantiating the theory that high unemployment and police killings are correlated.
+```{r}
+
+#count of whether each killing occured in an area that has an unemployment rate higher than the national average of 3.6%
+PK1=PoliceKillings%>%
+  mutate(higherthanavg=if_else(Unemployment_Rate>0.054,"Yes","No"))
+table(PK1$higherthanavg) 
+
+#splitting up unemployment into ranges and then finding the count for each bin
+URranges1=cut2(PoliceKillings$Unemployment_Rate,c(0.02,0.04,0.06,0.08,0.1,0.12,0.14,0.16,0.18,0.2,0.22,0.24,0.26,0.28,0.3,0.32,0.34,0.36,0.38,0.4)) 
+summary(URranges1) 
+
+
+#histogram of unemployment values
+ggplot(PoliceKillings,aes(x=Unemployment_Rate))+
+  geom_histogram(breaks=c(0.00,
+                      seq(0.05,0.5,0.05)),col="magenta")+geom_vline(xintercept = 0.054,linetype="dashed",color="yellow")+
+  ylab("Police Killings Frequencies")+
+  xlab("Unemployment Rates")+
+  ggtitle("Frequencies of Police Killings by Unemployment Rate")
+
+```
+
+###Q2: Were more armed victims killed than unarmed victims?
+From the data it can be observed that 357 of the 465 people killed by the police in the first half of 2015 were armed, while 102 were unarmed, and for 7 of the individuals it is unknown whether they were armed. From this breakdown it seems likely that being armed is a major factor in whether someone is killed by the police as there were more than three times the number of armed individuals as unarmed in the dataset.
+
+```{r}
+#Creating a table of killings by category of count
+
+Armed1=table(PoliceKillings$Armed)
+print(Armed1)
+ggplot(PoliceKillings,aes(x=PoliceKillings$Armed))+
+  geom_bar()+
+  coord_flip()+
+  xlab("Armed vs Unarmed")+
+  ylab("Frequency of Killings")+
+  ggtitle("Frequency of Police Killings by Armed Status")
+```
+
+# Follow up questions
+
+### New Questions Based Off Initial Investigation
+
+- Q1: Which model best predicts the median household income of a police killing victim?
+- Q2: How do gun laws relate to observations of police killings?
+- Q3: How do frequencies of police killings by cause of death proportionally relate to region/gun law groupings? 
+- Q4: How do frequencies of police killings by armed status proportionally relate to region/gun law groupings?
+
+### Investigation of Follow-up Questions
+
+We explored answers for each of these additional questions but focused mainly on exploring questions 1 and 2. 
+
+SHOW AT LEAST 2 TABLES OR FIGURES BELOW THAT EXPLORE ANSWERS FOR THE QUESTIONS YOU ARE INVESTIGATING FURTHER.
+
+## Question 1: Which model best predicts the median household income of a police killing victim?
+
+```{r}
+library(tidyverse)    #Essential Functions
+library(modelr)       #Helpful Functions in Modeling
+library(purrr)
+library(broom)
+```
+
+```{r}
+income_cv1 = PoliceKillings %>% 
+  select(-Name, -Latitude, -Longitude,everything()) %>% 
+  mutate( 
+    Age = as.numeric(Age),
+    Gender = as.factor(Gender), 
+    Race = as.factor(Race), 
+    State = as.factor(State),
+    Region = as.factor(region)) 
+```
+
+```{r}
+firstmod = lm(med.tract.household.inc~Population,data=income_cv1)
+tidy(firstmod)
+
+income_cv1_sec = income_cv1 %>% 
+  crossv_kfold(5)
+
+head(income_cv1_sec)
+
+train.model.func1 = function(data){
+  fistmod = lm(med.tract.household.inc~Population,data=data)
+  return(fistmod)
+}
+income_cv1_third = income_cv1_sec %>%
+  mutate(tr.model = map(train,train.model.func1)) 
+
+income_cv1_predict = income_cv1_third %>% 
+  mutate(predict = map2(test,tr.model, ~augment(.y,newdata=.x))) %>% 
+  select(predict) %>% 
+  unnest()
+
+head(income_cv1_predict)
+
+bias.func=function(actual,predict){
+  bias=mean((actual-predict),na.rm=T)
+  return(bias)
+}
+
+mae.func=function(actual,predict){
+  mae=mean(abs(actual-predict),na.rm=T)
+  return(mae)
+}
+
+RMSE.func=function(actual,predict){
+  mse=mean((actual-predict)^2,na.rm=T)
+  rmse=sqrt(mse)
+  return(rmse)
+}
+```
+
+
+```{r}
+secmod = lm(med.tract.household.inc~Population + Poverty_Rate, data=income_cv1)
+tidy(secmod)
+
+income_cv2_sec = income_cv1 %>% 
+  crossv_kfold(5)
+
+train.model.func1 = function(data){
+  secmod = lm(med.tract.household.inc~Population + Poverty_Rate, data=income_cv1)
+  return(secmod)
+}
+income_cv2_third = income_cv2_sec %>%
+  mutate(tr.model = map(train,train.model.func1)) 
+
+income_cv2_predict = income_cv2_third %>% 
+  mutate(predict = map2(test,tr.model, ~augment(.y,newdata=.x))) %>% 
+  select(predict) %>% 
+  unnest()
+```
+
+```{r}
+fourmod = lm(med.tract.household.inc~Population + Poverty_Rate + Age, data=income_cv1)
+tidy(fourmod)
+summary(fourmod)
+
+income_cv4_sec = income_cv1 %>% 
+  crossv_kfold(100)
+
+train.model.func1 = function(data){
+  fourmod = lm(med.tract.household.inc~Population + Poverty_Rate + Age, data=income_cv1)
+  return(fourmod)
+}
+income_cv4_third = income_cv4_sec %>%
+  mutate(tr.model = map(train,train.model.func1)) 
+
+income_cv4_predict = income_cv4_third %>% 
+  mutate(predict = map2(test,tr.model, ~augment(.y,newdata=.x))) %>% 
+  select(predict) %>% 
+  unnest()
+```
+
+```{r}
+fivemod = lm(med.tract.household.inc~Population + Poverty_Rate + Age + Proportion_Attended_College, data=income_cv1)
+tidy(fivemod)
+summary(fivemod)
+
+income_cv5_sec = income_cv1 %>% 
+  crossv_kfold(100)
+
+train.model.func1 = function(data){
+  fivemod = lm(med.tract.household.inc~Population + Poverty_Rate + Age + Proportion_Attended_College, data=income_cv1)
+  return(fivemod)
+}
+income_cv5_third = income_cv5_sec %>%
+  mutate(tr.model = map(train,train.model.func1)) 
+
+income_cv5_predict = income_cv5_third %>% 
+  mutate(predict = map2(test,tr.model, ~augment(.y,newdata=.x))) %>% 
+  select(predict) %>% 
+  unnest()
+```
+
+```{r}
+sixmod = lm(med.tract.household.inc~Population + Poverty_Rate + Age + Proportion_Attended_College + Proportion_White + Race + Region + Race*Region, data=income_cv1)
+tidy(sixmod)
+summary(sixmod)
+
+income_cv6_sec = income_cv1 %>% 
+  crossv_kfold(100)
+
+train.model.func1 = function(data){
+  sixmod = lm(med.tract.household.inc~Population + Poverty_Rate + Age + Proportion_Attended_College + Proportion_White + Race + Region + Race*Region, data=income_cv1)
+tidy(sixmod)
+  return(sixmod)
+}
+income_cv6_third = income_cv6_sec %>%
+  mutate(tr.model = map(train,train.model.func1)) 
+
+income_cv6_predict = income_cv6_third %>% 
+  mutate(predict = map2(test,tr.model, ~augment(.y,newdata=.x))) %>% 
+  select(predict) %>% 
+  unnest()
+```
+
+```{r, results="asis"}
+table <- matrix(c(bias.func(actual=income_cv1_predict$med.tract.household.inc, predict=income_cv1_predict$.fitted), mae.func(actual=income_cv1_predict$med.tract.household.inc, predict=income_cv1_predict$.fitted), RMSE.func(actual=income_cv1_predict$med.tract.household.inc, predict=income_cv1_predict$.fitted), bias.func(actual=income_cv2_predict$med.tract.household.inc, predict=income_cv2_predict$.fitted), mae.func(actual=income_cv2_predict$med.tract.household.inc, predict=income_cv2_predict$.fitted), RMSE.func(actual=income_cv2_predict$med.tract.household.inc, predict=income_cv2_predict$.fitted), bias.func(actual=income_cv4_predict$med.tract.household.inc, predict=income_cv4_predict$.fitted), mae.func(actual=income_cv4_predict$med.tract.household.inc, predict=income_cv4_predict$.fitted), RMSE.func(actual=income_cv4_predict$med.tract.household.inc, predict=income_cv4_predict$.fitted),bias.func(actual=income_cv5_predict$med.tract.household.inc, predict=income_cv5_predict$.fitted), mae.func(actual=income_cv5_predict$med.tract.household.inc, predict=income_cv5_predict$.fitted), RMSE.func(actual=income_cv5_predict$med.tract.household.inc, predict=income_cv5_predict$.fitted), bias.func(actual=income_cv6_predict$med.tract.household.inc, predict=income_cv6_predict$.fitted), mae.func(actual=income_cv6_predict$med.tract.household.inc, predict=income_cv6_predict$.fitted),RMSE.func(actual=income_cv6_predict$med.tract.household.inc, predict=income_cv6_predict$.fitted)), ncol = 3, byrow = T)
+
+colnames(table) = c("Bias", "MAE", "RMSE")
+row.names(table) = c("Base Model", "Model 2", "Model 3", "Model 4", "Model 5")
+table <- as.table(table) 
+```
+
+```{r}
+table2=xtable(table,digits=4,align=c("l","l","l","l"))
+formattable(table2)
+```
+
+## Question 2: How do gun laws relate to observations of police killings?
+
+```{r}
+
+# Web scrape the gun laws table from
+URL.gun.scorecard = "https://lawcenter.giffords.org/scorecard2015/"
+gun.scorecard = URL.gun.scorecard %>%
+                      read_html() %>%
+                      html_table(fill=1) %>%
+                      .[[1]]
+
+# Removing the minus and plus signs from the grades
+gun.scorecard$`2015 Grade`[gun.scorecard$`2015 Grade` %in% "A-"]="A"
+gun.scorecard$`2015 Grade`[gun.scorecard$`2015 Grade` %in% "B+"]="B"
+gun.scorecard$`2015 Grade`[gun.scorecard$`2015 Grade` %in% "B-"]="B"
+gun.scorecard$`2015 Grade`[gun.scorecard$`2015 Grade` %in% "C-"]="C"
+gun.scorecard$`2015 Grade`[gun.scorecard$`2015 Grade` %in% "D-"]="D"
+
+# Adding the region
+gun.scorecard<-gun.scorecard %>%
+  left_join(region.data,by="State")
+ 
+
+gun.scorecard<-pops %>%
+  select("GEO.display-label","respop72015") %>%
+  rename(State="GEO.display-label",Pop2015=respop72015) %>%
+  left_join(gun.scorecard,by="State") %>% 
+  mutate(Pop2015=as.numeric(Pop2015)) %>%
+  left_join(state.kills,by=c("state"="State"))
+
+# Remove DC and Total US
+gun.scorecard1<-gun.scorecard[-c(which(is.na(gun.scorecard$`2015 Grade`))),] %>%
+  select(-`Death Rate Per 100k`,-`New Smart Gun Laws in 2015`)
+
+# Turning the gun law grades into factors to run a regression later
+gun.scorecard2<-gun.scorecard1[-c(which(is.na(gun.scorecard1$count))),]
+
+gun.scorecard3<-gun.scorecard2 %>%
+  mutate("2015 Grade"=factor(gun.scorecard2$`2015 Grade`)) %>%
+  mutate(KillCount=count) %>%
+  select(-count)
+
+# Find how many unique groups of gun laws there are and how many kills per capita are in each
+gun.scorecard4<-gun.scorecard3 %>%
+  group_by(`2015 Grade`) %>%
+  dplyr::summarize(count.gunlaws.ranks=n(),
+                   KillCount=sum(KillCount),
+                   Population=sum(Pop2015),
+                   "Kill.per.100,000"=KillCount/Population*100000) %>%
+  ungroup()
+ 
+ggplot(gun.scorecard4)+
+  geom_col(aes(x=`2015 Grade`,y=`Kill.per.100,000`),fill="red")+
+  xlab("Gun Control Law Rankings")+
+  ylab("Police Killings per 100,000 People")+
+  ggtitle("Police Killings per 100,000 People by Type of Gun Laws")+
+  theme_dark()+
+  theme_minimal()
+  
+  
+gun.table<-gun.scorecard4 %>%
+  rename("Count of Gun Law Ranks"=count.gunlaws.ranks,"Kill Count"=KillCount,"Kill Rate per 100,000 People"=`Kill.per.100,000`)
+
+formattable(gun.table)
+
+```
+
+```{r}
+library(mapproj)
+library(usmap)
+library(ggplot2)
+library(mapdata)
+library(sf)
+
+PoliceKillingsMap = 
+  PoliceKillings %>% 
+  filter(State != "HI") %>%
+  filter(State != "AK")
+
+labs1 <- data.frame(
+long = PoliceKillingsMap$Longitude, 
+lat = PoliceKillingsMap$Latitude, 
+state = PoliceKillingsMap$State,
+stringsAsFactors = FALSE)
+
+
+us_states1 = map_data("state")
+
+us_states2 = 
+  us_states1 %>% 
+  mutate(State = region) %>% 
+  select(-subregion,-region)
+
+gun.scorecard2[[1]] = tolower(gun.scorecard2[[1]])
+
+us_states3 = right_join(us_states2,gun.scorecard2)
+```
+
+```{r include = F}
+rename(us_states3, Rank = "2015 Grade") 
+```
+
+```{r}
+labs2 = right_join(us_states3, labs1)
+
+
+one = ggplot(data = us_states3, aes(x =long, y = lat, group = group, fill = Rank)) + guides() + coord_fixed(1.3)
+
+two = one + geom_polygon(color = "gray90", size = 0.1) + 
+  coord_map(projection = "albers", lat0 = 39, lat1 = 45)
+
+three = two + scale_fill_gradient(low = "white", high = "#CB454A")
+
+
+four = three +
+  geom_point(data = labs2, aes(x = long, y = lat), alpha = 0.4, size = 0.5) + 
+  ggtitle("Police Killings in States with Ranked Gun Laws")
+
+four
+```
+
+## Question 3: How do frequencies of police killings by cause of death proportionally relate to region/gun law groupings?
+
+```{r}
+
+
+
+gun.scorecard.causes<-pops %>%
+  select("GEO.display-label") %>%
+  rename(State="GEO.display-label") %>%
+  left_join(gun.scorecard,by="State") %>% 
+  mutate(Pop2015=as.numeric(Pop2015)) %>%
+  left_join(state.kills,by=c("state"="State"))
+
+  # Remove DC and Total US
+gun.scorecard2<-gun.scorecard1[-c(which(is.na(gun.scorecard1$`2015 Grade`))),]
+
+
+# Turning the gun law grades into factors to run a regression later
+gun.scorecard3<-gun.scorecard2[-c(which(is.na(gun.scorecard2$count))),]
+
+gun.scorecard4<-gun.scorecard3 %>%
+  mutate("2015 Grade"=factor(gun.scorecard3$`2015 Grade`)) %>%
+  mutate(KillCount=count) %>%
+  select(-count)
+
+# Find how many unique groups of gun laws there are and how many kills per capita are in each
+gun.scorecard5<-gun.scorecard4 %>%
+  group_by(`2015 Grade`) %>%
+  dplyr::summarize(count.gunlaws.ranks=n(),
+                   KillCount=sum(KillCount),
+                   Population=sum(Pop2015),
+                   "Kill.per.100,000"=KillCount/Population*100000) %>%
+  ungroup()
+
+
+
+# Plotting proportion of causes of police killings in each region
+Causes <- PoliceKillings %>% 
+  group_by(Cause_Of_Death,region) %>%
+  dplyr::summarize(count=n()) %>%
+  ungroup() %>%
+  mutate(prop=count/sum(count)) 
+
+Causes1<-Causes %>%
+  left_join(region.kills,by="region") %>%
+  mutate(Prop.cause.region=count.x/count.y)
+
+NoGun1= filter(Causes1, Cause_Of_Death != "Gunshot", Cause_Of_Death != "Unknown")
+ggplot(data=NoGun1) +
+  geom_col(aes(x=Cause_Of_Death,y=Prop.cause.region)) + 
+  xlab("Cause of Death") + ylab("Proportional of Deaths") + 
+  theme_light()+
+  facet_wrap(NoGun1$region~.)+
+  theme(axis.text.x=element_text(angle=45,hjust=1))+
+  ggtitle("Proportion of Police Killings in Each Region by Cause of Death")
+
+## Adding gun law ranking
+
+# Count police killings by gun law rankings
+laws.kills<-PoliceKillings %>%
+  left_join(gun.scorecard,by="region") %>%
+  select(`2015 Grade`,Cause_Of_Death) %>%
+  mutate(`2015 Grade`=factor(`2015 Grade`)) %>%
+  group_by(`2015 Grade`) %>%
+  dplyr::summarize(Kills.By.Laws=n()) %>%
+  ungroup() 
+  
+
+causes.laws<-PoliceKillings %>%
+  select(Cause_Of_Death,region) %>%
+  left_join(gun.scorecard,by="region") %>%
+  select(Cause_Of_Death,`2015 Grade`) %>%
+  group_by(Cause_Of_Death,`2015 Grade`) %>%
+  dplyr::summarize(count=n()) %>%
+  ungroup() %>%
+  left_join(laws.kills,by="2015 Grade") %>%
+  mutate(cause.prop.by.laws=count/Kills.By.Laws) %>%
+  group_by(Cause_Of_Death,`2015 Grade`)
+
+# Figure of proportional deaths by cause and gun laws
+ggplot(data=causes.laws) +
+  geom_col(aes(x=Cause_Of_Death,y=cause.prop.by.laws)) + 
+  xlab("Cause of Death") + ylab("Proportion of Deaths") + 
+  theme_light()+
+  facet_wrap(causes.laws$`2015 Grade`~.)+
+  theme(axis.text.x=element_text(angle=45,hjust=1))+
+  ggtitle("Proportion of Police Killings in Each Gun Law Grade")
+
+
+```
+
+## Question 4: How do frequencies of police killings by armed status proportionally relate to region/gun law groupings?
+
+
+```{r}
+# Plotting proportion of people armed/unarmed in police killings in each region
+Armed <- PoliceKillings %>% 
+  group_by(Armed,region) %>%
+  dplyr::summarize(count=n()) %>%
+  ungroup() %>%
+  mutate(prop=count/sum(count)) 
+
+Armed1<-Armed %>%
+  left_join(region.kills,by="region") %>%
+  mutate(Prop.armed.region=count.x/count.y)
+
+Armed2<-filter(Armed1,Armed != "Unknown", Armed != "Disputed")
+ggplot(data=Armed2) +
+  geom_col(aes(x=Armed,y=Prop.armed.region)) + 
+  xlab("Armed") + ylab("Proportional of Deaths") + 
+  theme_light()+
+  facet_wrap(region~.~.)+
+  theme(axis.text.x=element_text(angle=45,hjust=1))+
+  ggtitle("Proportion of Police Killings in Each Region by Armed Status")
+
+
+## Adding gun law rankings
+
+Armed.laws<-PoliceKillings %>%
+  select(Armed,region) %>%
+  left_join(gun.scorecard,by="region") %>%
+  select(Armed,`2015 Grade`) %>%
+  group_by(Armed,`2015 Grade`) %>%
+  dplyr::summarize(count=n()) %>%
+  ungroup() %>%
+  left_join(laws.kills,by="2015 Grade") %>%
+  mutate(armed.prop.by.laws=count/Kills.By.Laws) %>%
+  group_by(Armed,`2015 Grade`)
+
+# Figure of proportional deaths by armed status and gun laws
+Armed.laws= filter(Armed.laws, Armed != "Unknown", Armed != "Disputed")
+ggplot(data=Armed.laws) +
+  geom_col(aes(x=Armed,y=armed.prop.by.laws)) + 
+  xlab("Armed Status") + ylab("Proportion of Deaths") + 
+  theme_light()+
+  facet_wrap(Armed.laws$`2015 Grade`~.)+
+  theme(axis.text.x=element_text(angle=45,hjust=1))+
+  ggtitle("Proportion of Police Killings in Each Gun Law Grade")
+```
+
+#Summary
+PARAGRAPH 1:
+
+Throughout the analysis of the first 10 questions, we focused on determining factors in the initial dataset that were most indicative of fatal confrontations by police officers. Those factors included: location, race, age, income, whether the victim was armed, along with various census statistics for the area in which the victim was killed. Grouping the states by region in the U.S. elucidated the individual pieces of data on a larger scale, and allowed us to examine which geographic regions had the highest rates of police killings per 100,000 citizens. The West, closely followed by the South, were the regions with the highest rates of police killings.  Furthermore, grouping enabled us to analyze the impact of race on police killings by region. Across every region, white Americans were more likely to be killed by the police. We also investigated the relationships between police killings and socioeconomic demographics such as unemployment rates and the percentage of people in an area that attended college. We ascertained that areas with lower proportions of college educated citizens have more police shootings that result in death. The regions in which the unemployment rate is higher than the national average unemployment rate also had higher ratings of police shootings. Additionally, after investigating the cause of death variable in the dataset we found that, excluding gunshots, tasers were the most frequent cause of death. An issue that arose during our analysis was that when we attempted to predict the likelihood of police killings, we realized this was not possible. We could not do this because our data was limited solely to shootings resulting in fatalities. In order to perform logistic regressions we would require aggregate data of all police confrontations, including those that did not result in death. One of the initial questions that led us to investigate further was whether or not the victim was armed. This prompted a follow up investigation on whether or not different gun laws affect the rate of police killings.
+
+
+
+PARAGRAPH 2: 
+
+
+After the initial analysis, we decided to further investigate the characteristics of shooting victims. To do this, we created a series of basic regressions utilizing socioeconomic variables to predict the median income of the victim. We incorporated different groupings of our dataset’s variables in order to determine which variables were most influential in predicting median income. We found that the best model incorporated the most variables. This model explained 73.84% of the variation in police killings. In order to better compare the models against each other we created a table which displays the bias, mean absolute error, and root mean squared error for each model. From this table, it can be observed that the model with the most variables, model five, had the lowest MAE and RMSE; out of all models, model five had the highest explanatory power and the lowest levels of error. The values of the MAE and RMSE tend to be large. Logically, this explains natural patterns of income, which tend to have large differences in variation and skewed toward the right. Although no interactions or polynomials were factored into this initial exploration, we hope to examine these more complicated relationships in the final paper. We also examined both the relationship between the frequencies of police killings and gun laws. To investigate the impact of gun laws on police killings we incorporated data from the Giffords Law Center in which they graded each state based on their level of gun safety and strictness. In order to compare the different grades of states we created a bar chart to display the number of police killings for each grade, and surprisingly, states which received an “A” grade actually had a higher rate of police killings per 100,000 people than states given grades of “B”, “C”, or “D”. This could be due to the group of A states having a significantly higher population than the “B”, “C”, and “D” groups. As expected states given a grade of “F” had the highest rate of police killings per 100,000 people. Additionally, we created a heatmap for the United States that visualizes each state’s gun safety rank from 1-50 as given by Giffords, and the points represent the police killings from our dataset. For the third question we analyzed the frequency of police killings by cause of death. Specifically, we investigated how these killings were proportionally related to regions as well as the different grades of gun safety for each state. To visualize this question, we created a series of faceted bar charts that showed the proportion of police killings for each type of weapon, excluding guns. Surprisingly death by motor vehicle had the highest proportion in the Northeast, while in the other regions this proportion was significantly less. In order to analyze the cause of death by the gun safety grades we created the previously mentioned graph but facet wrapped by the five safety grades rather than region. From looking at the graphs it can be seen that “A” states actually had the lowest percentage of gunshot as the cause of death. This indicates that firearms are used less frequently in states that have stricter gun laws. For the final question, we examined the interplay between frequencies of police killings and armed status. We studied how these qualities proportionally relate to region and gun law groupings. Using a bar chart faceted by region, we found that most of the victims in our dataset were armed with firearms; more victims were armed in the Northeast and West than in the Midwest and South. However, while these two regions had lower proportions of those armed with guns, they actually had a higher proportion of victims who were unarmed than the other regions. When analyzing status of armed by gun safety grades, we found that states with a grade of “D” and “F” actually had slightly lower proportions of victims armed with firearms. Additionally, states given a grade of “A” had the lowest proportion of unarmed victims. 
+
+
+
+
+
+
+
+
+
+
+
