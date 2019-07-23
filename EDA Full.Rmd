@@ -534,6 +534,28 @@ table <- as.table(table)
 table2=xtable(table,digits=4,align=c("l","l","l","l"))
 formattable(table2)
 ```
+```{r}
+#STEP 1: Run a stepwise regression to find best model:
+
+Full1= lm(med.tract.household.inc~ Age+ factor(Gender)+ factor(Race)+ Population+factor(Armed)+ factor(Cause_Of_Death) + Proportion_White +Proportion_Black + Proportion_Hispanic +Poverty_Rate +Unemployment_Rate +Proportion_Attended_College, data= income_cv1)
+
+MSE1=(summary(Full1)$sigma)^2
+none= lm(med.tract.household.inc~1, data=income_cv1)
+
+# STEP 2: Take model that it gave and mess around with it, add transformations, add interactions, and remove variables if needed: 
+
+stepwise= lm(log(med.tract.household.inc) ~ Poverty_Rate  + Population+ Proportion_Black+ Proportion_White+I(Proportion_Attended_College^2)+ Poverty_Rate*Unemployment_Rate, data = income_cv1)
+
+summary(stepwise)
+
+# STEP 3: Check to see if conditions for simple linear regression are met: 
+
+plot(stepwise$residuals~stepwise$fitted.values)
+abline(0,0)
+qqnorm(stepwise$residuals)
+qqline(stepwise$residuals)
+hist(stepwise$residuals)
+```
 
 ## Question 2: How do gun laws relate to observations of police killings?
 
