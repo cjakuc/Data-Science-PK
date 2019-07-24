@@ -399,7 +399,7 @@ income_cv1 = PoliceKillings %>%
     Gender = as.factor(Gender), 
     Race = as.factor(Race), 
     State = as.factor(State),
-    Region = as.factor(region)) 
+    Region = factor(region)) 
 ```
 
 ```{r}
@@ -544,13 +544,23 @@ row.names(table) = c("Base Model", "Model 2", "Model 3", "Model 4", "Model 5")
 # ```
 
 ```{r}
+test.step<-income_cv1 %>%
+  mutate(regionwest=ifelse(Region=="West",1,0)) %>%
+  mutate(regionsouth=ifelse(Region=="South",1,0)) %>%
+  mutate(regionnortheast=ifelse(Region=="Northeast",1,0))
+
 #STEP 1: Run a stepwise regression to find best model:
-Full1= lm(med.tract.household.inc~ Age+ factor(Gender)+ factor(Race)+ Population+factor(Armed)+ factor(Cause_Of_Death) + Proportion_White +Proportion_Black + Proportion_Hispanic +Poverty_Rate +Unemployment_Rate +Proportion_Attended_College, data= income_cv1)
+Full1= lm(med.tract.household.inc~ Age+ factor(Gender)+ factor(Race)+ Population+factor(Armed)+ factor(Cause_Of_Death) + Proportion_White +Proportion_Black + Proportion_Hispanic +Poverty_Rate +Unemployment_Rate +Proportion_Attended_College+ Region+ regionwest+ regionsouth+ regionnortheast+ Poverty_Rate*Unemployment_Rate+ I(Proportion_Attended_College^2), data= test.step)
 MSE1=(summary(Full1)$sigma)^2
-none= lm(med.tract.household.inc~1, data=income_cv1)
+none= lm(med.tract.household.inc~1, data=test.step)
 step(none, scope= list(upper=Full1), scale=MSE1)
+
+
 # STEP 2: Take model that it gave and mess around with it, add transformations, add interactions, and remove variables if needed: 
-stepwise= lm(med.tract.household.inc ~ Poverty_Rate  + Population+ Proportion_Black+ Proportion_White+I(Proportion_Attended_College^2)+ Poverty_Rate*Unemployment_Rate, data = income_cv1)
+# stepwise= lm(med.tract.household.inc ~ Poverty_Rate  + Population+ Proportion_Black+ Proportion_White+I(Proportion_Attended_College^2)+ Poverty_Rate*Unemployment_Rate, data = income_cv1)
+# summary(stepwise)
+
+stepwise= lm(med.tract.household.inc ~ Poverty_Rate+ Population+ Proportion_White+ Proportion_Attended_College+ I(Proportion_Attended_College^2)+ Region, data = test.step)
 summary(stepwise)
 
 
@@ -581,7 +591,7 @@ hist(stepwise$residuals)
 #   return(rmse)
 # }
 
-income_cv7_sec = income_cv1 %>% 
+income_cv7_sec = test.step %>% 
   crossv_kfold(100)
 
 train.model.func1 = function(data){
@@ -613,7 +623,54 @@ formattable(table2)
 ```
 
 
+```{r}
+model1=lm(med.tract.household.inc~Population,income_cv1)
+tidy(model1)
+model2=lm(med.tract.household.inc~Population + Poverty_Rate,income_cv1)
+tidy(model2)
+model3=lm(med.tract.household.inc~Population + Poverty_Rate + Age,income_cv1)
+tidy(model3)
+model4=lm(med.tract.household.inc~Population + Poverty_Rate + Age + Proportion_Attended_College,income_cv1)
+tidy(model4)
+model5=lm(med.tract.household.inc~Population + Poverty_Rate + Age + Proportion_Attended_College + Proportion_White + Race + Region + Race*Region,income_cv1)
+tidy(model5)
+model6=stepwise
+tidy(model6)
+```
 
+
+```{r}
+test.step %>%
+  spread_predictions(model1,model2,model3,model4,model5,model6)%>%
+  select(med.tract.household.inc,model1,model2,model3,model4,model5,model6,Proportion_Attended_College,Poverty_Rate)%>%
+  gather(model1:model6,key="Model",value="Pred",factor_key=T) %>%
+  # view(test.step) %>%
+    ggplot() + 
+      geom_point(aes(x=Poverty_Rate,y=med.tract.household.inc),color="gray") + 
+      theme_minimal() +
+      geom_point(aes(x=Poverty_Rate,y=Pred,color=Model),size=1)+
+      geom_hline(yintercept=0)+
+      facet_grid(Model~.)+
+      ggtitle("")+
+      xlab("Proportion Attended College")+
+      ylab("")
+  
+```
+
+
+```{r}
+test.step1<-test.step %>%
+  group_by(med.tract.household.inc) %>%
+  dplyr::summarize(count=n()) %>%
+  dplyr::ungroup() %>%
+  right_join(test.step,by="med.tract.household.inc") %>%
+  gather_predictions(model1,model2,model3,model4,model5,model6) %>%
+  ggplot() +
+    geom_point(mapping=aes(x=med.tract.household.inc,y=count))+
+    geom_line(aes(x=med.tract.household.inc,y=pred),size=2)+
+    theme_minimal()+
+    facet_grid(model~.)
+```
 
 ## Question 2: How do gun laws relate to observations of police killings?
 
