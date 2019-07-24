@@ -646,16 +646,57 @@ test.step %>%
   gather(model1:model6,key="Model",value="Pred",factor_key=T) %>%
   # view(test.step) %>%
     ggplot() + 
+      geom_point(aes(x=Proportion_Attended_College,y=med.tract.household.inc),color="gray") + 
+      theme_minimal() +
+      geom_point(aes(x=Proportion_Attended_College,y=Pred,color=Model),size=1)+
+      geom_hline(yintercept=0)+
+      facet_grid(Model~.)+
+      ggtitle("")+
+      xlab("Proportion Attended College")+
+      ylab("Median Tract Household Income")
+
+test.step %>%
+  spread_predictions(model1,model2,model3,model4,model5,model6)%>%
+  select(med.tract.household.inc,model1,model2,model3,model4,model5,model6,Proportion_Attended_College,Poverty_Rate)%>%
+  gather(model1:model6,key="Model",value="Pred",factor_key=T) %>%
+  # view(test.step) %>%
+    ggplot() + 
       geom_point(aes(x=Poverty_Rate,y=med.tract.household.inc),color="gray") + 
       theme_minimal() +
       geom_point(aes(x=Poverty_Rate,y=Pred,color=Model),size=1)+
       geom_hline(yintercept=0)+
       facet_grid(Model~.)+
       ggtitle("")+
-      xlab("Proportion Attended College")+
-      ylab("")
+      xlab("Poverty Rate")+
+      ylab("Median Tract Household Income")
   
 ```
+
+
+```{r}
+
+# Gather all the models into a single variable
+res.test.step1<-test.step %>%
+  spread_predictions(model1,model2,model3,model4,model5,model6)%>%
+  select(med.tract.household.inc,model1,model2,model3,model4,model5,model6,Proportion_Attended_College,Poverty_Rate)%>%
+  gather(model1:model6,key="Model",value="Pred",factor_key=T) 
+
+# Plot the residuals of all the models
+ggplot(res.test.step1)+
+  geom_point(aes(x=res.test.step1$Pred,y=(res.test.step1$med.tract.household.inc-res.test.step1$Pred),color=Model))+
+  facet_grid(Model~.)+
+  geom_hline(yintercept=0,color="white")+
+  ylab("Residuals")+
+  xlab("Predicted Median Tract Household Income")+
+  ggtitle("Residuals Across Models")+
+  labs(subtitle="White Lines Are Residuals of Zero")+
+  theme_dark()+
+  theme(plot.background = element_rect(fill = "lightgray"))
+  
+
+
+```
+
 
 
 ```{r}
