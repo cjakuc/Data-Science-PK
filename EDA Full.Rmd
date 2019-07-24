@@ -229,7 +229,6 @@ ggplot(PoliceKillings)+
   scale_x_continuous(breaks=c(25000,50000,75000,100000))+
   ggtitle("Prop of Deaths per Region by Median Household Income")+
   labs(subtitle = "Dashed Line is Regional Mean Median Household Income")
-
 ```
 
 #Orator: Harrison Cho
@@ -550,7 +549,7 @@ test.step<-income_cv1 %>%
   mutate(regionnortheast=ifelse(Region=="Northeast",1,0))
 
 #STEP 1: Run a stepwise regression to find best model:
-Full1= lm(med.tract.household.inc~ Age+ factor(Gender)+ factor(Race)+ Population+factor(Armed)+ factor(Cause_Of_Death) + Proportion_White +Proportion_Black + Proportion_Hispanic +Poverty_Rate +Unemployment_Rate +Proportion_Attended_College+ Region+ regionwest+ regionsouth+ regionnortheast+ Poverty_Rate*Unemployment_Rate+ I(Proportion_Attended_College^2), data= test.step)
+Full1= lm(med.tract.household.inc~ Age+ factor(Gender)+ factor(Race)+ Population+factor(Armed)+ factor(Cause_Of_Death) + Proportion_White +Proportion_Black + Proportion_Hispanic +Poverty_Rate +Unemployment_Rate +Proportion_Attended_College+ Region+ regionwest+ regionsouth+ regionnortheast+ Poverty_Rate*Unemployment_Rate+ Race*Region+  I(Proportion_Attended_College^2), data= test.step)
 MSE1=(summary(Full1)$sigma)^2
 none= lm(med.tract.household.inc~1, data=test.step)
 step(none, scope= list(upper=Full1), scale=MSE1)
@@ -696,6 +695,8 @@ ggplot(res.test.step1)+
 
 
 ```
+
+
 
 
 
