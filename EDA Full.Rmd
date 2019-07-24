@@ -214,17 +214,22 @@ ggplot(Ages1)+
 
 
 ```{r}
-mean.inc<-mean(PoliceKillings$med.tract.household.inc)
+mean.inc<-PoliceKillings %>%
+  group_by(region) %>%
+  dplyr::summarize(mean=mean(med.tract.household.inc))
 
 ggplot(PoliceKillings)+
-  geom_histogram(aes(x=med.tract.household.inc),bins=20,fill='deepskyblue1')+
-  geom_vline(xintercept=mean.inc,linetype="dashed",color="white")+
+  geom_histogram(aes(x=med.tract.household.inc,stat(density)),bins=20,fill='deepskyblue1')+
   facet_wrap(region~.)+
+  geom_vline(aes(xintercept=mean),data=mean.inc,linetype="dashed",color="white")+
   theme_dark()+
   xlab("Median Household Income")+
-  ylab("Number of Deaths")+
+  ylab("Proportion of Deaths")+
   theme(axis.text.x=element_text(angle=45,hjust=1))+
-  scale_x_continuous(breaks=c(25000,50000,75000,100000))
+  scale_x_continuous(breaks=c(25000,50000,75000,100000))+
+  ggtitle("Prop of Deaths per Region by Median Household Income")+
+  labs(subtitle = "Dashed Line is Regional Mean Median Household Income")
+
 ```
 
 #Orator: Harrison Cho
@@ -410,6 +415,7 @@ train.model.func1 = function(data){
   fistmod = lm(med.tract.household.inc~Population,data=data)
   return(fistmod)
 }
+
 income_cv1_third = income_cv1_sec %>%
   mutate(tr.model = map(train,train.model.func1)) 
 
@@ -527,37 +533,87 @@ table <- matrix(c(bias.func(actual=income_cv1_predict$med.tract.household.inc, p
 
 colnames(table) = c("Bias", "MAE", "RMSE")
 row.names(table) = c("Base Model", "Model 2", "Model 3", "Model 4", "Model 5")
-table <- as.table(table) 
+# table <- as.table(table) 
 ```
 
-```{r}
-table2=xtable(table,digits=4,align=c("l","l","l","l"))
-formattable(table2)
-```
+
+
+# ```{r}
+# table2=xtable(table,digits=4,align=c("l","l","l","l"))
+# formattable(table2)
+# ```
+
 ```{r}
 #STEP 1: Run a stepwise regression to find best model:
-
 Full1= lm(med.tract.household.inc~ Age+ factor(Gender)+ factor(Race)+ Population+factor(Armed)+ factor(Cause_Of_Death) + Proportion_White +Proportion_Black + Proportion_Hispanic +Poverty_Rate +Unemployment_Rate +Proportion_Attended_College, data= income_cv1)
-
 MSE1=(summary(Full1)$sigma)^2
 none= lm(med.tract.household.inc~1, data=income_cv1)
-
 step(none, scope= list(upper=Full1), scale=MSE1)
-
 # STEP 2: Take model that it gave and mess around with it, add transformations, add interactions, and remove variables if needed: 
-
-stepwise= lm(log(med.tract.household.inc) ~ Poverty_Rate  + Population+ Proportion_Black+ Proportion_White+I(Proportion_Attended_College^2)+ Poverty_Rate*Unemployment_Rate, data = income_cv1)
-
+stepwise= lm(med.tract.household.inc ~ Poverty_Rate  + Population+ Proportion_Black+ Proportion_White+I(Proportion_Attended_College^2)+ Poverty_Rate*Unemployment_Rate, data = income_cv1)
 summary(stepwise)
 
-# STEP 3: Check to see if conditions for simple linear regression are met: 
 
+# STEP 3: Check to see if conditions for simple linear regression are met: 
 plot(stepwise$residuals~stepwise$fitted.values)
 abline(0,0)
 qqnorm(stepwise$residuals)
 qqline(stepwise$residuals)
 hist(stepwise$residuals)
 ```
+
+```{r}
+# # Functions that work for the stepwise regression output
+# bias.step.func = function(residuals) {
+#   bias=mean(residuals,na.rm=T)
+#   return(bias)
+# }
+# 
+# mae.step.func = function(residuals) {
+#   mae=mean(abs(residuals),na.rm=T)
+#   return(mae)
+# }
+# 
+# 
+# rmse.step.func = function(residuals) {
+#   mse=mean((residuals)^2,na.rm=T)
+#   rmse=sqrt(mse)
+#   return(rmse)
+# }
+
+income_cv7_sec = income_cv1 %>% 
+  crossv_kfold(100)
+
+train.model.func1 = function(data){
+  sevenmod = stepwise
+  tidy(sevenmod)
+  return(sevenmod)
+}
+income_cv7_third = income_cv7_sec %>%
+  mutate(tr.model = map(train,train.model.func1)) 
+
+income_cv7_predict = income_cv7_third %>% 
+  mutate(predict = map2(test,tr.model, ~augment(.y,newdata=.x))) %>% 
+  select(predict) %>% 
+  unnest()
+
+
+table1<-table %>%
+  rbind(c(bias.func(income_cv7_predict$med.tract.household.inc,income_cv7_predict$.fitted),
+          mae.func(income_cv7_predict$med.tract.household.inc, income_cv7_predict$.fitted),
+          RMSE.func(income_cv7_predict$med.tract.household.inc,income_cv7_predict$.fitted)))
+
+```
+
+```{r}
+row.names(table1) = c("Base Model", "Model 2", "Model 3", "Model 4", "Model 5","Stepwise Model")
+table1 <- as.table(table1)
+table2=xtable(table1,digits=4,align=c("l","l","l","l"))
+formattable(table2)
+```
+
+
+
 
 ## Question 2: How do gun laws relate to observations of police killings?
 
@@ -683,38 +739,6 @@ four
 ## Question 3: How do frequencies of police killings by cause of death proportionally relate to region/gun law groupings?
 
 ```{r}
-
-
-
-gun.scorecard.causes<-pops %>%
-  select("GEO.display-label") %>%
-  rename(State="GEO.display-label") %>%
-  left_join(gun.scorecard,by="State") %>% 
-  mutate(Pop2015=as.numeric(Pop2015)) %>%
-  left_join(state.kills,by=c("state"="State"))
-
-  # Remove DC and Total US
-gun.scorecard2<-gun.scorecard1[-c(which(is.na(gun.scorecard1$`2015 Grade`))),]
-
-
-# Turning the gun law grades into factors to run a regression later
-gun.scorecard3<-gun.scorecard2[-c(which(is.na(gun.scorecard2$count))),]
-
-gun.scorecard4<-gun.scorecard3 %>%
-  mutate("2015 Grade"=factor(gun.scorecard3$`2015 Grade`)) %>%
-  mutate(KillCount=count) %>%
-  select(-count)
-
-# Find how many unique groups of gun laws there are and how many kills per capita are in each
-gun.scorecard5<-gun.scorecard4 %>%
-  group_by(`2015 Grade`) %>%
-  dplyr::summarize(count.gunlaws.ranks=n(),
-                   KillCount=sum(KillCount),
-                   Population=sum(Pop2015),
-                   "Kill.per.100,000"=KillCount/Population*100000) %>%
-  ungroup()
-
-
 
 # Plotting proportion of causes of police killings in each region
 Causes <- PoliceKillings %>% 
