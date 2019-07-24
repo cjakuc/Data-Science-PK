@@ -708,9 +708,9 @@ us_states2 =
   mutate(State = region) %>% 
   select(-subregion,-region)
 
-gun.scorecard2[[1]] = tolower(gun.scorecard2[[1]])
+gun.scorecard[[1]] = tolower(gun.scorecard[[1]])
 
-us_states3 = right_join(us_states2,gun.scorecard2)
+us_states3 = right_join(us_states2,gun.scorecard)
 ```
 
 ```{r include = F}
