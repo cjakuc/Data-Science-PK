@@ -24,6 +24,18 @@ PoliceKillings<-read_csv("PKcleanP2.csv")
 PoliceKillings$region[which(PoliceKillings$State=="DC")]<-"South"
 ```
 
+# Creating a table of summary statistics for the quantitative variables used in the final model
+```{r}
+# Import CSV
+PoliceKillings.table<-read_csv("PoliceKillingsTable.csv")
+
+# Turn it into a table
+formattable(PoliceKillings.table)
+```
+
+
+
+
 #Creator: Katharine Kurz
 
 
@@ -214,21 +226,29 @@ ggplot(Ages1)+
 
 
 ```{r}
-mean.inc<-PoliceKillings %>%
-  group_by(region) %>%
-  dplyr::summarize(mean=mean(med.tract.household.inc))
+# Mean Median Income for entire regions (including living people) estimated by census bureau as of 2015 from https://www.census.gov/library/publications/2016/demo/p60-256.html
+
+region.names<-c("Northeast","Midwest","South","West")
+region.mean.inc<-c(62182,57082,51174,61442)
+
+
+mean.inc<-tibble(region=region.names,mean=region.mean.inc)
+
+
 
 ggplot(PoliceKillings)+
-  geom_histogram(aes(x=med.tract.household.inc,stat(density)),bins=20,fill='deepskyblue1')+
+  geom_histogram(aes(x=med.tract.household.inc),bins=20,fill='deepskyblue1')+
   facet_wrap(region~.)+
   geom_vline(aes(xintercept=mean),data=mean.inc,linetype="dashed",color="white")+
   theme_dark()+
   xlab("Median Household Income")+
-  ylab("Proportion of Deaths")+
+  ylab("Count of Deaths")+
   theme(axis.text.x=element_text(angle=45,hjust=1))+
   scale_x_continuous(breaks=c(25000,50000,75000,100000))+
-  ggtitle("Prop of Deaths per Region by Median Household Income")+
-  labs(subtitle = "Dashed Line is Regional Mean Median Household Income")
+  ggtitle("Proportion of Deaths per Region by Median Household Income")+
+  labs(subtitle = "Dashed Line is Regional Mean Median Household Income")+
+  theme(plot.background = element_rect(fill = "lightgray"))
+
 ```
 
 #Orator: Harrison Cho
@@ -406,7 +426,7 @@ firstmod = lm(med.tract.household.inc~Population,data=income_cv1)
 tidy(firstmod)
 
 income_cv1_sec = income_cv1 %>% 
-  crossv_kfold(5)
+  crossv_kfold(100)
 
 head(income_cv1_sec)
 
@@ -448,7 +468,7 @@ secmod = lm(med.tract.household.inc~Population + Poverty_Rate, data=income_cv1)
 tidy(secmod)
 
 income_cv2_sec = income_cv1 %>% 
-  crossv_kfold(5)
+  crossv_kfold(100)
 
 train.model.func1 = function(data){
   secmod = lm(med.tract.household.inc~Population + Poverty_Rate, data=income_cv1)
@@ -684,35 +704,42 @@ res.test.step1<-test.step %>%
 ggplot(res.test.step1)+
   geom_point(aes(x=res.test.step1$Pred,y=(res.test.step1$med.tract.household.inc-res.test.step1$Pred),color=Model))+
   facet_grid(Model~.)+
-  geom_hline(yintercept=0,color="white")+
+  geom_hline(yintercept=0,color="white",size=1)+
+  # geom_hline(yintercept=-50000,linetype="dashed",color="yellow")+
+  # geom_hline(yintercept=50000,linetype="dashed",color="yellow")+
+  # geom_hline(yintercept=100000,linetype="dashed",color="yellow",)+
   ylab("Residuals")+
   xlab("Predicted Median Tract Household Income")+
   ggtitle("Residuals Across Models")+
   labs(subtitle="White Lines Are Residuals of Zero")+
   theme_dark()+
-  theme(plot.background = element_rect(fill = "lightgray"))
+  theme(plot.background = element_rect(fill = "lightgray"))+
+  scale_y_continuous(breaks=c(-50000,0,50000,100000),labels=c("-50000","0","50000","100000"))
+  
+res.test.step2<-test.step %>%
+  spread_predictions(model5,model6)%>%
+  select(med.tract.household.inc,model5,model6,Proportion_Attended_College,Poverty_Rate)%>%
+  gather(model5:model6,key="Model",value="Pred",factor_key=T) 
+
+ggplot(res.test.step2)+
+  geom_point(aes(x=res.test.step2$Pred,y=(res.test.step2$med.tract.household.inc-res.test.step2$Pred),color=Model))+
+  facet_grid(Model~.)+
+  geom_hline(yintercept=0,color="white",size=2)+
+  geom_hline(yintercept=50000,linetype="dashed",color="yellow")+
+  geom_hline(yintercept=100000,linetype="dashed",color="yellow")+
+  ylab("Residuals")+
+  xlab("Predicted Median Tract Household Income")+
+  ggtitle("Residuals Across Models")+
+  labs(subtitle="White Lines Are Residuals of Zero")+
+  theme_dark()+
+  theme(plot.background = element_rect(fill = "lightgray"))+
+  scale_y_continuous(breaks=c(-50000,0,50000,100000),labels=c("-50000","0","50000","100000"))
   
 
-
 ```
 
 
 
-
-
-```{r}
-test.step1<-test.step %>%
-  group_by(med.tract.household.inc) %>%
-  dplyr::summarize(count=n()) %>%
-  dplyr::ungroup() %>%
-  right_join(test.step,by="med.tract.household.inc") %>%
-  gather_predictions(model1,model2,model3,model4,model5,model6) %>%
-  ggplot() +
-    geom_point(mapping=aes(x=med.tract.household.inc,y=count))+
-    geom_line(aes(x=med.tract.household.inc,y=pred),size=2)+
-    theme_minimal()+
-    facet_grid(model~.)
-```
 
 ## Question 2: How do gun laws relate to observations of police killings?
 
