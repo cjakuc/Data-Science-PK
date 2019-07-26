@@ -311,10 +311,13 @@ PD =
     killed = factor(killed, levels=c("0","1"), labels = c("Alive","Dead")))
   
 ggplot(PD) + 
-  geom_bar(mapping = aes(killed)) + 
+  geom_bar(mapping = aes(killed), fill="skyblue1") + 
   theme_light() + 
   ggtitle("Police Violence in 2015") + xlab("Status of Victims") + ylab("Count")+
-  scale_x_discrete(limits=c("Alive","Dead"))
+  scale_x_discrete(limits=c("Alive","Dead"))+
+  theme_dark()+
+  theme(plot.background = element_rect(fill = "lightgray"))
+
 ```
 
 This question is unable to be answered with the current dataset. Given that everyone is killed, we are unable to answer this question using a model. 
