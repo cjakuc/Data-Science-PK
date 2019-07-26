@@ -207,7 +207,8 @@ ggplot(Races1)+
   ggtitle("Regional Proportion of Police Killings by Race")+
   theme_dark()+
   theme(plot.background = element_rect(fill = "lightgray"))+
-  theme(axis.text.x=element_text(angle=45,hjust=1))
+  theme(axis.text.x=element_text(angle=45,hjust=1))+
+  labs(subtitle="Ranked by Total Race Proportion in All Regions")
 
 
 
