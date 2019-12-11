@@ -1,0 +1,368 @@
+---
+title: "STOR320_Patchwork_test"
+author: "Chris Jakuc"
+date: "12/11/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(patchwork)
+library(tidyverse)
+library(dplyr)
+library(Hmisc)
+library(modelr)
+library(rvest)
+library(formattable)
+```
+
+
+
+```{r}
+# Import Data Below
+PoliceKillings<-read_csv("PKcleanP2.csv")
+
+# Add DC to the South region
+PoliceKillings$region[which(PoliceKillings$State=="DC")]<-"South"
+
+# Import CSV
+PoliceKillings.table<-read_csv("PoliceKillingsTable.csv")
+
+```
+
+
+```{r}
+# Adding populations by state and adding populations by region
+populations<-read_csv("StatePops.csv")
+pops<-populations[-1,3:11]
+
+
+# Import states by region
+region.data<-read_csv("StatesbyCensusRegion.csv")
+
+
+# Joining state pop and region data
+pops1<-pops %>%
+  select("GEO.display-label","respop72015") %>%
+  rename(State="GEO.display-label",Pop2015=respop72015) %>%
+  left_join(region.data,by="State") %>%
+  mutate(Pop2015=as.numeric(Pop2015)) %>%
+  group_by(region) %>%
+  mutate(PopByRegion=sum(Pop2015)) %>%
+  select(PopByRegion,region) %>%
+  ungroup() %>%
+  mutate(Pop.prop=PopByRegion/PopByRegion[1])
+
+# Create a tibble of uniqe regions, pops, and prop pops
+pops2<- tibble(PopByRegion=unique(pops1$PopByRegion),Region=unique(pops1$region),Pop.prop=unique(pops1$Pop.prop))
+
+# Converting region variable to a factor
+regions<-pops2 %>%
+  mutate(Region=as_factor(Region))
+levels(regions$Region)
+
+# Remove the row for US total police killings
+regions<-regions[-c(is.na(regions$Region)),]
+```
+
+
+```{r}
+# Count how many police killings are in each state
+state.kills<-PoliceKillings %>%
+  select(State) %>%
+  mutate(State=as_factor(State)) %>%
+  group_by(State) %>%
+  dplyr::summarize(count=n())
+
+# Count how many police killings are in each region
+region.kills<-PoliceKillings %>%
+  select(region) %>%
+  mutate(region=as_factor(region)) %>%
+  group_by(region) %>%
+  dplyr::summarize(count=n())
+```
+
+
+```{r}
+# Create population state data frame
+states<- pops %>%
+  select("GEO.display-label","respop72015") %>%
+  rename(State="GEO.display-label",Pop2015=respop72015) %>%
+  mutate(Pop2015=as.numeric(Pop2015)) %>%
+  left_join(region.data,by="State") %>%
+  select(-region)
+
+# Join police killings by state with population state data and create a variable for kills per 100,000 per state
+states1<-states[-c(1),] %>%
+  select(Pop2015,State,state) %>%
+  right_join(state.kills,by=c("state"="State")) %>%
+  mutate(kill.pc.state=count/Pop2015*100000)
+
+# Join police killings by region with population regions data and create a variable for kills per 100,000 per region
+regions1<-regions %>%
+  select(PopByRegion,Region) %>%
+  right_join(region.kills,by=c("Region"="region")) %>%
+  mutate(kill.pc.region=count/PopByRegion*100000)
+```
+
+
+```{r}
+Races <- PoliceKillings %>% 
+  group_by(Race,region) %>%
+  dplyr::summarize(count=n()) %>%
+  ungroup() %>%
+  mutate(prop=count/sum(count)) 
+
+# Remove the row for unknown races
+Races<-Races[-c(which(Races$Race=="Unknown")),]
+
+NE= 47433806+38008094+6049443+3151094+6991969
+MW= 52096633+6843367+388068+1738361+4661678
+S= 68706462+21578475+728410+3238092+18227508
+W= 38006363+3214563+1002967+6923296+20596439
+total=NE+MW+S+W
+
+# Proportions of each race that live in each region in 2015
+# https://factfinder.census.gov/faces/tableservices/jsf/pages/productview.xhtml?src=bkmk
+
+race.table<-data.frame("Region"= c("Northeast","Midwest","South","West"),
+                           "White"=c(47433806,52096633,68706462,38006363),
+                           "Black"=c(38008094,6843367,21578475,3214563),
+                           "Native American"=c(6049443,388068,728410,1002967),
+                           "Asian/Pacific Islander"=c((117653+3033441),(1713429+24932),(3170814+67278),(6547440+375856)),
+                            "Hispanic"=c((55317240-48325271),(66927001-62265323),(114555744-96328236),(71945553-51349114)),
+                           "Total"=c(NE,MW,S,W))
+
+race.prop.table<-data.frame("Region"= c("Northeast","Midwest","South","West"),
+                            "White"=c(47433806/NE,52096633/MW,68706462/S,38006363/W),
+                            "Black"=c(38008094/NE,6843367/MW,21578475/S,3214563/W),
+                            "Native American"=c(6049443/NE,388068/MW,728410/S,1002967/W),
+                            "Asian/Pacific Islander"=c((117653+3033441)/NE,(1713429+24932)/MW,(3170814+67278)/S,(6547440+375856)/W),
+                            "Hispanic"=c((55317240-48325271)/NE,(66927001-62265323)/MW,(114555744-96328236)/S,(71945553-51349114)/W),
+                            "Total"=c(NE/total,MW/total,S/total,W/total))
+
+race.rank<-race.prop.table %>%
+  rename("Native American"=Native.American,
+         "Asian/Pacific Islander"=Asian.Pacific.Islander,
+         "Hispanic/Latino"=Hispanic) %>%
+  gather(White:`Hispanic/Latino`,key="Race",value="Race_Proportion_by_Region",factor_key = T) %>%
+  mutate(Region=factor(Region)) %>%
+  filter(!(Race =="Native American"&Region!="West"))
+
+# Ranks of the proportion of race for all the regions
+ranks<-c(4,2,3,1,3,1,2,4,3,4,2,1,1,1,4,2,3)
+
+# Plotting proportion of police killings in each region by race
+Races1<-Races %>%
+  left_join(region.kills,by="region") %>%
+  mutate(Prop.race.region=count.x/count.y) %>%
+  left_join(race.rank,by=c("region"="Region","Race")) %>%
+  cbind(ranks)
+```
+
+
+```{r}
+# Mean Median Income for entire regions (including living people) estimated by census bureau as of 2015 from https://www.census.gov/library/publications/2016/demo/p60-256.html
+
+region.names<-c("Northeast","Midwest","South","West")
+region.mean.inc<-c(62182,57082,51174,61442)
+
+
+mean.inc<-tibble(region=region.names,mean=region.mean.inc)
+```
+
+
+```{r}
+#count of whether each killing occured in an area that has an unemployment rate higher than the national average of 3.6%
+PK1=PoliceKillings%>%
+  mutate(higherthanavg=if_else(Unemployment_Rate>0.054,"Yes","No"))
+table(PK1$higherthanavg) 
+
+#splitting up unemployment into ranges and then finding the count for each bin
+URranges1=cut2(PoliceKillings$Unemployment_Rate,c(0.02,0.04,0.06,0.08,0.1,0.12,0.14,0.16,0.18,0.2,0.22,0.24,0.26,0.28,0.3,0.32,0.34,0.36,0.38,0.4)) 
+summary(URranges1) 
+```
+
+
+```{r}
+# Web scrape the gun laws table from
+URL.gun.scorecard = "https://lawcenter.giffords.org/scorecard2015/"
+gun.scorecard = URL.gun.scorecard %>%
+                      read_html() %>%
+                      html_table(fill=1) %>%
+                      .[[1]]
+
+# Removing the minus and plus signs from the grades
+gun.scorecard$`2015 Grade`[gun.scorecard$`2015 Grade` %in% "A-"]="A"
+gun.scorecard$`2015 Grade`[gun.scorecard$`2015 Grade` %in% "B+"]="B"
+gun.scorecard$`2015 Grade`[gun.scorecard$`2015 Grade` %in% "B-"]="B"
+gun.scorecard$`2015 Grade`[gun.scorecard$`2015 Grade` %in% "C-"]="C"
+gun.scorecard$`2015 Grade`[gun.scorecard$`2015 Grade` %in% "D-"]="D"
+
+# Adding the region
+gun.scorecard<-gun.scorecard %>%
+  left_join(region.data,by="State")
+ 
+
+gun.scorecard<-pops %>%
+  select("GEO.display-label","respop72015") %>%
+  rename(State="GEO.display-label",Pop2015=respop72015) %>%
+  left_join(gun.scorecard,by="State") %>% 
+  mutate(Pop2015=as.numeric(Pop2015)) %>%
+  left_join(state.kills,by=c("state"="State"))
+
+# Remove DC and Total US
+gun.scorecard1<-gun.scorecard[-c(which(is.na(gun.scorecard$`2015 Grade`))),] %>%
+  select(-`Death Rate Per 100k`,-`New Smart Gun Laws in 2015`)
+
+# Turning the gun law grades into factors to run a regression later
+gun.scorecard2<-gun.scorecard1[-c(which(is.na(gun.scorecard1$count))),]
+
+gun.scorecard3<-gun.scorecard2 %>%
+  mutate("2015 Grade"=factor(gun.scorecard2$`2015 Grade`)) %>%
+  mutate(KillCount=count) %>%
+  select(-count)
+
+# Find how many unique groups of gun laws there are and how many kills per capita are in each
+gun.scorecard4<-gun.scorecard3 %>%
+  group_by(`2015 Grade`) %>%
+  dplyr::summarize(count.gunlaws.ranks=n(),
+                   KillCount=sum(KillCount),
+                   Population=sum(Pop2015),
+                   "Kill.per.100,000"=KillCount/Population*100000) %>%
+  ungroup()
+  
+  
+gun.table<-gun.scorecard4 %>%
+  rename("Number of States"=count.gunlaws.ranks,"Kill Count"=KillCount,"Kill Rate per 100,000 People"=`Kill.per.100,000`)
+```
+
+
+```{r}
+library(mapproj)
+library(usmap)
+library(mapdata)
+library(sf)
+
+PoliceKillingsMap = 
+  PoliceKillings %>% 
+  filter(State != "HI") %>%
+  filter(State != "AK")
+
+labs1 <- data.frame(
+long = PoliceKillingsMap$Longitude, 
+lat = PoliceKillingsMap$Latitude, 
+state = PoliceKillingsMap$State,
+stringsAsFactors = FALSE)
+
+
+us_states1 = map_data("state")
+
+us_states2 = 
+  us_states1 %>% 
+  mutate(State = region) %>% 
+  select(-subregion,-region)
+
+gun.scorecard[[1]] = tolower(gun.scorecard[[1]])
+
+us_states3 = right_join(us_states2,gun.scorecard)
+
+rename(us_states3, Rank = "2015 Grade") 
+
+
+labs2 = right_join(us_states3, labs1)
+
+
+one = ggplot(data = us_states3, aes(x =long, y = lat, group = group, fill = Rank)) + guides() + coord_fixed(1.3)
+
+two = one + geom_polygon(color = "gray90", size = 0.1) + 
+  coord_map(projection = "albers", lat0 = 39, lat1 = 45)
+
+three = two + scale_fill_gradient(low = "white", high = "skyblue1")
+
+
+four = three +
+  geom_point(data = labs2, aes(x = long, y = lat),color="red", alpha = 0.4, size = 0.5) + 
+  # ggtitle("Police Killings in States with Ranked Gun Laws")+
+  theme_dark()+
+  theme(plot.background = element_rect(fill = "lightgray"))+
+  xlab("Longitude")+
+  ylab("Latitude")
+```
+
+**Figure One: Proportion of Deaths per Region by Median Household Income**
+```{r, echo=FALSE, warning=FALSE}
+p1 <- ggplot(PoliceKillings)+
+  geom_histogram(aes(x=med.tract.household.inc),bins=20,fill='skyblue1')+
+  facet_wrap(region~.)+
+  geom_vline(aes(xintercept=mean),data=mean.inc,linetype="dashed",color="white")+
+  theme_dark()+
+  theme(plot.background = element_rect(fill = "lightgray"))+
+  xlab("Median Household Income")+
+  ylab("Count of Deaths")+
+  theme(axis.text.x=element_text(angle=45,hjust=1))+
+  scale_x_continuous(breaks=c(25000,50000,75000,100000))+
+  # ggtitle("Proportion of Deaths per Region by Median Household Income")+
+  labs(subtitle = "Dashed Line is Regional Mean Median Household Income")
+```
+
+**Figure Two: Regional Proportion of Police Killings by Race**
+```{r, echo=FALSE, warning=FALSE}
+p2 <- ggplot(Races1)+
+  geom_col(aes(x=Race,y=Prop.race.region),fill="skyblue1")+
+  geom_text(aes(x=Race,y=Prop.race.region,label=ranks),color="white")+
+  facet_wrap(region~.)+
+  ylab("Proportion of police killings by region")+
+  theme(axis.text.x=element_text(angle=45,hjust=1))+
+  # ggtitle("Regional Proportion of Police Killings by Race")+
+  theme_dark()+
+  theme(plot.background = element_rect(fill = "lightgray"))+
+  theme(axis.text.x=element_text(angle=45,hjust=1))+
+  labs(subtitle="Ranked by Total Race Proportion in All Regions")
+```
+
+**Table Two: Proportions of Populatiuon by Race and Region**
+```{r, echo=FALSE, warning=FALSE}
+p3 <- formattable(race.prop.table)
+
+```
+
+**Table Three: Measures of Error within each Model**
+```{r, echo=FALSE, warning=FALSE}
+p4 <- formattable(table2)
+```
+
+**Figure Five: Police Killings per 100,000 People by Grade of Gun Laws**
+```{r, echo=FALSE, warning=FALSE}
+p5 <- ggplot(gun.scorecard4)+
+  geom_col(aes(x=`2015 Grade`,y=`Kill.per.100,000`),fill="skyblue1")+
+  xlab("Gun Control Law Rankings")+
+  ylab("Police Killings per 100,000 People")+
+  # ggtitle("Police Killings per 100,000 People by Grade of Gun Laws")+
+  theme_dark()+
+  theme(plot.background = element_rect(fill = "lightgray"))
+```
+
+
+**Table Five: Police Killing Rates by Gun Law Grades**
+```{r, echo=FALSE, warning=FALSE}
+p6 <- formattable(gun.table)
+```
+
+**Figure Six: Police Killings in States with Ranked Gun Laws**
+```{r, echo=FALSE, warning=FALSE}
+p7 <- four
+```
+
+
+```{r}
+(p5) /
+  p7
+```
+
+
+```{r}
+(p1 | p2)
+```
+
