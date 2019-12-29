@@ -1,5 +1,5 @@
 ---
-title: "My Heart Will Go On Remix"
+title: "Police Killings Analysis"
 author: "STOR 320 Group 4"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 output: html_document
